@@ -7,15 +7,10 @@ import warnings
 warnings.simplefilter('ignore', h5.NaturalNameWarning)
 from glob import glob
 
-'''
-    NUCLEON_ELASTIC_FF IMPORTS
-'''
+
 sys.path.append(os.path.join(os.path.dirname(__file__)))
-sys.path.append(os.path.join(os.path.dirname(__file__),'area51_files'))
 import importlib
-import c51_mdwf_hisq as c51
-import utils
-import sources
+
 ens,stream = c51.ens_base()
 ens_s = ens+'_'+stream
 

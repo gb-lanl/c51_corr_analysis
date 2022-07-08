@@ -8,7 +8,11 @@ import os
 
 class load_3pt_data():
     def __init__(self):
-        self.data_origin = data_origin # LANL or CalLat data
+        self.data_dir = data_dir # LANL or CalLat data directory; import as module
+        self.data_path = data_path # path to .h5 file or list of files 
+        self.twopt_range = twopt_range # 2pt data range 
+        self.threept_range = threept_range # 3 pt data range 
+
         self.incl_ga = 
         self.incl_gv = 
 
@@ -21,12 +25,12 @@ class load_3pt_data():
         eg. positive/negative parity with 
         combinations of DD_dn_dn UU_up_up etc 
         '''
-        if self.data_origin is 'lanl':
+        if self.data_dir is 'lanl':
             t_sep = fp['tsep']
             for i in range(1,15):
                 NUCL_U_MIXED_NONREL_l0_g{i}
                 if key in ['ext_current','ext_current_SP','local_axial_SP']:
-
+        
                 
 
             if self.incl_ga:
@@ -39,9 +43,6 @@ class load_3pt_data():
             else:
                 warnings.warn('Are you sure you do not want to include gV in 3pt analysis?')
 
-
-        
-        elif self.data_origin is 'callat':
 
 
         three_point_ml0p00951 = myfile['gf1p0_w3p5_n45_M51p1_L56_a1p5']['formfac']['ml0p00951']
@@ -56,5 +57,35 @@ class load_3pt_data():
         proton_np_UU_dn_dn = self.find_key(three_point_ml0p00951, 'proton_np_UU_dn_dn')
         proton_np_UU_up_up = self.find_key(three_point_ml0p00951, 'proton_np_UU_up_up')
 
+    def read_data_avg(self):
+        file = h5.File(self.data_path,'r')
+        correlator_type = ['2pt','3pt']
+        spin = ['spin_up', 'spin_dn']
+        par = ['proton','proton_sp','pion','pion_sp']
+        momentum = {}   #list of combinations of momenta to be summed over (x,y,z) 
+        #momentum.append(str.split(proton_))
+        first_data = True #if gathering first "raw" data prior to preparation
+        cfgs_src = ['src5.0_snk5.0']
+        for corr_type in correlator_type:
+            for corr in par:
+                for mom in momentum:
 
+
+        
+        two_point_ = myfile[correlator_type][par][cfgs_src][momentum] # different data file need different path here
+
+        two_point_proton = np.array([two_point_['proton']['px0_py0_pz0']['spin_dn'][:],
+        two_point_ml0p00951['proton']['px0_py0_pz0']['spin_up'][:]])
+        two_point_proton_np = np.array([two_point_ml0p00951['proton_np']['px0_py0_pz0']['spin_dn'][:],
+        two_point_ml0p00951['proton_np']['px0_py0_pz0']['spin_up'][:]])
+        
+        two_point_data = (two_point_proton[0] + two_point_proton[1] + two_point_proton_sp[0] + two_point_proton_sp[1])/4
+        two_point_data = np.squeeze(two_point_data)
+        twopt_proton = 
+        twopt_proton_sp = 
+
+        twopt_pion = 
+        twopt_pion_sp = 
+
+        three_point_data = myfile[]
 
