@@ -12,8 +12,6 @@ x['pi_SS'] = {'state':'pi'
 
 
 class CorrFunction:
-    def mres_func(self,x,p):
-        return p['mres']*np.ones(x.shape[0])
 
     def En(self, x, p, n):
         '''
@@ -111,14 +109,6 @@ class CorrFunction:
             E_n = self.En(x, p, n)
             r += z_snk * z_src * (np.exp(-E_n*t) + np.exp(-E_n*(T-t)))
         return r
-    
-    def mres(self, x, p):
-        ''' m_res = midpoint_pseudo / pseudo_pseudo
-            we fit to a constant away from early/late time
-            m_res = p[mres_l]
-        '''
-        return p[x['state']]*np.ones_like(x['t_range'])
-    
 
     def mres(self, x, p):
         ''' m_res = midpoint_pseudo / pseudo_pseudo
