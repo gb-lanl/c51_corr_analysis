@@ -9,13 +9,15 @@ directory = './data/C13/'
 N_cnf = len([name for name in os.listdir(directory) if os.path.isfile(name)])
 
 dirs = os.listdir( directory )
-# print(dirs)
+print(dirs)
+cnf_abbr = [files.split(".ama.h5",0) for files in dirs]
+print(cnf_abbr)
 # data_file_list = os.path.realpath(dirs)
 data_file_list = list()
 for dirpath,_,filenames in os.walk(directory):
     for f in filenames:
         data_file_list.append(os.path.abspath(os.path.join(dirpath, f)))
-        # print(data_file_list)
+        #print(data_file_list)
 # Read group structure
 #-------------------------
 data = {}
@@ -116,77 +118,68 @@ corr_lst = {
     },
 }
 
-twopt_paths = []
-for corr in corr_lst:
-        q   = corr_dict[corr]['q']
-        state = corr_dict[corr]['state']
-# for q,state in corr_lst['proton']['q']:
 
-    threept_8_paths[corr][q][state]  = {}
-    threept_10_paths[corr][q][state] = []
-    threept_12_paths[corr][q][state] = []
-    threept_14_paths[corr][q][state] = []
 
-filename = 'visit_h5_20220707-1230.txt'
-#filename = max_file
-string_fnd_1 = 'is a Dataset'
-with open(filename, "r") as f:
-    for line in f:
-        if string_fnd_1 in line:
-            # cleaning the bad chars in line
-            line = line.strip()
-            # line = line.strip(" \\n")
-            line = re.sub(r"is a Dataset\s*", "", line)
-            line = re.sub(r"(-[0-9]+\.)", r" \1", line)
+# filename = 'visit_h5_20220707-1230.txt'
+# #filename = max_file
+# string_fnd_1 = 'is a Dataset'
+# with open(filename, "r") as f:
+#     for line in f:
+#         if string_fnd_1 in line:
+#             # cleaning the bad chars in line
+#             line = line.strip()
+#             # line = line.strip(" \\n")
+#             line = re.sub(r"is a Dataset\s*", "", line)
+#             line = re.sub(r"(-[0-9]+\.)", r" \1", line)
 
-            values = [str(value) for value in line.split()]
-            for key in values:
-                if '2pt' in key:
-                    if 'proton' in key:
-                        twopt_paths.append(key)
-                    # print(twopt_paths)
-                elif '3pt_tsep8' in key:
-                    if '_g0' in key:
-                        if '_U' in key:
-                            threept_8_paths['U']['scalar'].append(key)
-                        elif '_D' in key:
-                            threept_8_paths['D']['scalar'].append(key)
-                    elif '_g1'in key:
-                        if '_U' in key:
-                            threept_8_paths['U']['axial'].append(key)
-                        elif '_D' in key:
-                            threept_8_paths['D']['axial'].append(key)
-                    elif '_g3' in key:
-                        if '_U' in key:
-                            threept_8_paths['U']['tensor'].append(key)
-                        elif '_D' in key:
-                            threept_8_paths['D']['tensor'].append(key)
-                    elif '_g8' in key:
-                        if '_U' in key:
-                            threept_8_paths['U']['vector'].append(key)
-                        elif '_D' in key:
-                            threept_8_paths['D']['vector'].append(key)
+#             values = [str(value) for value in line.split()]
+#             for key in values:
+#                 if '2pt' in key:
+#                     if 'proton' in key:
+#                         twopt_paths.append(key)
+#                     # print(twopt_paths)
+#                 elif '3pt_tsep8' in key:
+#                     if '_g0' in key:
+#                         if '_U' in key:
+#                             threept_8_paths['U']['scalar'].append(key)
+#                         elif '_D' in key:
+#                             threept_8_paths['D']['scalar'].append(key)
+#                     elif '_g1'in key:
+#                         if '_U' in key:
+#                             threept_8_paths['U']['axial'].append(key)
+#                         elif '_D' in key:
+#                             threept_8_paths['D']['axial'].append(key)
+#                     elif '_g3' in key:
+#                         if '_U' in key:
+#                             threept_8_paths['U']['tensor'].append(key)
+#                         elif '_D' in key:
+#                             threept_8_paths['D']['tensor'].append(key)
+#                     elif '_g8' in key:
+#                         if '_U' in key:
+#                             threept_8_paths['U']['vector'].append(key)
+#                         elif '_D' in key:
+#                             threept_8_paths['D']['vector'].append(key)
                        
 
 
 
 
-            #         threept_8_paths.append(key)
-            #         # print(threept_8_paths)
-            #     elif '3pt_tsep10' in key:
-            #         threept_10_paths.append(key)
-            #     elif '3pt_tsep12' in key: 
-            #         threept_12_paths.append(key)
-            #     elif '3pt_tsep14' in key:
-            #         threept_14_paths.append(key)
+#             #         threept_8_paths.append(key)
+#             #         # print(threept_8_paths)
+#             #     elif '3pt_tsep10' in key:
+#             #         threept_10_paths.append(key)
+#             #     elif '3pt_tsep12' in key: 
+#             #         threept_12_paths.append(key)
+#             #     elif '3pt_tsep14' in key:
+#             #         threept_14_paths.append(key)
 
-            # # array.append(values)
-            print(threept_8_paths)
+#             # # array.append(values)
+#             print(threept_8_paths)
 
-with h5py.File(data_file_list[0],'r') as h5f:
-    for i in range(len(threept_10_paths)):
-        n= np.array(h5f[threept_10_paths[i]][:]) 
-        print(n)
+# with h5py.File(data_file_list[0],'r') as h5f:
+#     for i in range(len(threept_10_paths)):
+#         n= np.array(h5f[threept_10_paths[i]][:]) 
+#         print(n)
 
 def is_numeric_real( val):
   """
@@ -242,7 +235,7 @@ def correlator_simple_3pt( Esrc_m, Esnk_n, Vins_nm, Asrc_im, Asnk_jn, tins, tsnk
         ## capture fixed time behavior
             expEmt = np.linalg.matrix_power( np.diag( gv.exp( -Esrc_m)), tins)
             expEnt = np.linalg.matrix_power( np.diag( gv.exp( -Esnk_n)), (tsnk-tins))
-            return Asnk_jn.dot( expEnt).dot( Vins_nm).dot( expEmt).dot( Asrc_im.T)
+            return Asnk_jn.dot( expEnt).dot( Vins).dot( expEmt).dot( Asrc_im.T)
         ## loop over tsnk second
         return np.array([ correlator_simple_3pt(
         Esrc_m, Esnk_n, Vins_nm, Asrc_im, Asnk_jn, tins, ti) for ti in tsnk ])
