@@ -86,7 +86,17 @@ def main():
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
 
+    # # twopt = []
+    # # threept = []
+    # # # print(fp.data_file[0])
+    # # print(fp.h5_group_2pt)
+    # twopt.append(ld.read_dataset(inputfiles=fp.data_file[0], h5group= fp.h5_group_2pt ))
+    # threept.append(ld.read_dataset(inputfiles=fp.data_file[0], h5group= fp.h5_group_3pt ))
+    # # print(twopt)
+    # # print(threept)
     
+    # data_two_pt = np.asarray(twopt)
+    # print(data_two_pt)
 
     # can only uncorrelate all or sets of corrs
     if args.uncorr_all and args.uncorr_corrs:
@@ -118,10 +128,12 @@ def main():
         states = args.states
     else:
         states = fp.fit_states
-    print(gv_data,data_cfg)
+    
 
-    x,y,n_states,priors= plot.eff_plots.make_fit_params(fp=fp,states=states,gv_data=gv_data)
-    print(x,y,n_states,priors)
+    x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
+
+    print(x)
+    # print(x,y,n_states,priors)
     
     # # if args.eff:
     # #     plt.ion()

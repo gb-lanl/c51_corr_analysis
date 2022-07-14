@@ -118,6 +118,8 @@ def main():
     else:
         states = fp.fit_states
 
+    print(gv_data)
+
     # pulling in prepared x,y data, n_states from input file, and necessary priors to run fit 
     x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     

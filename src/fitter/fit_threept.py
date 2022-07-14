@@ -28,19 +28,6 @@ def main():
                 )
         return dset 
 
-    directory = '../../tests/data/C13/'
-    N_cnf = len([name for name in os.listdir(directory) if os.path.isfile(name)])
-    dirs = os.listdir( directory )
-    cnf_abbr = [files.split(".ama.h5",1)[0] for files in dirs]
-    datatag = []
-    for abbr in cnf_abbr:
-        datatag.append(abbr.replace("-","."))
-    # print(datatag) 
-    data_file_list = list()
-    for dirpath,_,filenames in os.walk(directory):
-        for f in filenames:
-            data_file_list.append(os.path.abspath(os.path.join(dirpath, f)))
-    data_file_list[0]
 
     def rotate(lis, n): # used to rotate the list
         return lis[n:] + lis[:n]
