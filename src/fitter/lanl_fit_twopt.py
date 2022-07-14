@@ -85,7 +85,7 @@ def main():
     sys.path.append(os.path.dirname(os.path.abspath(args.fit_params)))
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
-
+    print(fp.data_file, fp.corr_lst)
     # # twopt = []
     # # threept = []
     # # # print(fp.data_file[0])
@@ -128,9 +128,9 @@ def main():
         states = args.states
     else:
         states = fp.fit_states
-    
+    print(states)
+    print(gv_data)
     x = copy.deepcopy(fp.x)
-    y = {}
     
     y = {k: v[x[k]['t_range']]
         for (k,v) in gv_data if k.split('_')[0] in states}
