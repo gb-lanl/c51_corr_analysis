@@ -2,7 +2,7 @@ import gvar as gv
 import numpy as np
 import os
 
-fit_states = ['proton','pion','nucleon']
+fit_states = ['proton','pion','A3','V4']
 
 params = dict()
 params['ENS_ABBR'] = '5682'
@@ -105,8 +105,8 @@ corr_lst = {
         'corr_array':False,
         'stack': False,
         'q_bilinear': True,
-        'dsets':['3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
-                 '3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
+        'dsets':['/3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
+                '/3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
         'weights'  :[1.],
         't_reverse':[False],
         'phase'    :[1],
@@ -131,7 +131,7 @@ corr_lst = {
         'q_bilinear' : True,
         'stack': False,
         'dsets':['/3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
-                 '/3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
+        '/3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
         'weights'  :[1.],
         't_reverse':[False],
         'phase'    :[1],

@@ -35,42 +35,6 @@ def read_dataset(inputfiles, grep=None, keys=None, h5group=None, binsize=1, tcol
             )
     return dset 
 
-def make_fit_params(fp,states,gv_data):
-    x = copy.deepcopy(fp.x)
-    y = {}
-    for i in range(len(gv_data[0])):
-        y['twopt_tsep_'+str(i)] = gv_data[start:end,i,0]
-    y = {k: v[x[k]['t_range']]
-        for v in gv_data if k.split('_')[0] in states}
-    for k in y:
-        if 'exp_r' in x[k]['type']:
-            sp = k.split('_')[-1]
-            y[k] = y[k] / gv_data[x[k]['denom'][0]+'_'+sp][x[k]['t_range']]
-            y[k] = y[k] / gv_data[x[k]['denom'][1]+'_'+sp][x[k]['t_range']]
-    if any(['mres' in k for k in y]):
-        mres_lst = [k.split('_')[0] for k in y if 'mres' in k]
-        mres_lst = list(set(mres_lst))
-        for k in mres_lst:
-            y[k] = y[k+'_MP'] / y[k+'_PP']
-    
-    n_states = dict()
-    for state in states:
-        for k in x:
-            if state in k:
-                if state in k and 'mres' not in k:
-                    n_states[state] = x[k]['n_state']
-    priors = dict()
-    for k in fp.priors:
-        for state in states:
-            if 'mres' not in k:
-                k_n = int(k.split('_')[-1].split(')')[0])
-                if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
-            else:
-                mres = k.split('_')[0]
-                if mres in states:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
-    return x,y,n_states,priors
 
 def time_reverse(corr, reverse=True, phase=1, time_axis=1):
     ''' assumes time index is second of array
@@ -213,29 +177,24 @@ def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=Fals
             # spin-averaging: combining spin u to spin u and spin dn to spin dn corr fcns 
             # (V4: + , A3: -) reduces stochastic uncertainty of the data 
             # https://arxiv.org/abs/2104.05226                       
-            elif corr_dict['A3']['q_bilinear']:
+            elif corr_dict['A3']['q_bilinear'] ==True:
+                print(corr_dict['A3']['dsets'][0])
                 with h5.open_file(f5_files[0], 'r') as f5:
                     data_D = f5.get_node('/'+corr_dict['A3']['dsets'][0]).read()
                     data_U = f5.get_node('/'+corr_dict['A3']['dsets'][1]).read()
-                    for i in range(data_D.size):                            
-                        
-                        data = data_U[i][1] -data_D[i][1] 
-                        print(data)
+                    print(data_D)
+                    for i in range(len(data_D)):
+                        data_a3 = np.subtract(data_U[i][1] ,data_D[i][1])
+                    # import IPython 
+                    # IPython.embed()
+                    # print(data_U,data_D)
 
-            elif corr_dict['V4']['q_bilinear']:
+            elif corr_dict['V4']['q_bilinear'] == True:
                 with h5.open_file(f5_files[0], 'r') as f5:
-                    data_D = f5.get_node('/'+corr_dict[corr]['dsets'][0]).read()
-                    data_U = f5.get_node('/'+corr_dict[corr]['dsets'][1]).read()
-                    data = np.real(data_U) + np.real(data_D)
-
-            
-
-
-
-
-            
-
-
+                    data_D_ = f5.get_node('/'+corr_dict['V4']['dsets'][0]).read()
+                    data_U_ = f5.get_node('/'+corr_dict['V4']['dsets'][1]).read()
+                    for i in range(len(data_D_)):
+                        data_v4 = np.add(data_U_[i][0] ,data_D_[i][0])
 
             else:
                 for i, snk in enumerate(corr_dict[corr]['snks']):
