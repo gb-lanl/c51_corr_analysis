@@ -51,8 +51,10 @@ corr_lst = {
     # PION
     'pion':{
         'corr_array':False,
-        'stack'      : True,
+        'stack'      : False,
         'q_bilinear' : False,
+        'vector':False,
+        'axial': False,
         'dsets':['2pt/pion/src5.0_snk5.0/pion/C13.b_5682/AMA',
                 '2pt/pion_SP/src5.0_snk5.0/pion/C13.b_5682/AMA'],
         'weights'  :[1],
@@ -79,6 +81,8 @@ corr_lst = {
     'proton':{
         'corr_array': False,
         'stack'      : True,
+        'axial': False,
+        'vector':False,
         'q_bilinear' : False,
         'dsets':['2pt/proton/src5.0_snk5.0/proton/C13.b_5682/AMA',
                 '2pt/proton_SP/src5.0_snk5.0/proton/C13.b_5682/AMA'],
@@ -104,9 +108,10 @@ corr_lst = {
     'A3':{
         'corr_array':False,
         'stack': False,
-        'q_bilinear': True,
-        'dsets':['/3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
-                '/3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
+        'axial': True,
+        'vector':False,
+        'dsets':['3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
+                '3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g1/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
         'weights'  :[1.],
         't_reverse':[False],
         'phase'    :[1],
@@ -128,10 +133,13 @@ corr_lst = {
     #nucleon 3pt vector charge (gamma_8)
     'V4':{
         'corr_array':False,
+        'stack':False,
         'q_bilinear' : True,
+        'axial': False,
+        'vector':True,
         'stack': False,
-        'dsets':['/3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
-        '/3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
+        'dsets':['3pt_tsep8/NUCL_D_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA',
+                '3pt_tsep8/NUCL_U_MIXED_NONREL_l0_g8/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA'],
         'weights'  :[1.],
         't_reverse':[False],
         'phase'    :[1],
@@ -150,9 +158,6 @@ corr_lst = {
         't_sweep'  :range(2,16),
         'n_sweep'  :range(1,6),
     },
-
-
-
 }
 
 priors = gv.BufferDict()

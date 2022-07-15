@@ -9,6 +9,120 @@ import lsqfit
 import corr_functions as cf
 fit_funcs = cf.FitCorr()
 
+def get_effective_g00(fh_num_gv, nucleon_corr_gv):
+    fh_ratio_gv = {key : fh_num_gv[key] / nucleon_corr_gv[key] for key in fh_num_gv.keys()}
+        #return fh_num_gv
+        #fh_ratio_gv = {key : fh_num_gv[key] for key in fh_num_gv.keys()}
+    return {key : (np.roll(fh_ratio_gv[key], -1) - fh_ratio_gv[key])/1 for key in fh_ratio_gv.keys()}
+
+def plot_effective_g00(fh_num_gv, nucleon_corr_gv,
+                    t_plot_min, t_plot_max, show_plot=True,show_fit=False,
+                    observable=None):
+    
+    if observable is None:
+        return None
+    elif observable == 'gA':
+        ylabel = r'$g^{eff}_A}$'
+    elif observable == 'gV':
+        ylabel = r'$g^{eff}_V}$'
+    colors = np.array(['red', 'blue', 'yellow'])
+    t = np.arange(t_plot_min, t_plot_max)
+    effective_g00 = get_effective_g00(fh_num_gv, nucleon_corr_gv)
+
+    for j, key in enumerate(effective_g00.keys()):
+        y = gv.mean(effective_g00[key])[t]
+        y_err = gv.sdev(effective_g00[key])[t]
+        tp = t - 0.1 + j*0.2
+        plt.errorbar(x=tp, y=y, xerr=0.0, yerr=y_err, fmt='o', capsize=5.0,
+            color = colors[j], capthick=2.0, alpha=0.6, elinewidth=5.0, label=key)
+
+    # if show_fit:
+    #     t = np.linspace(t_plot_min-2, t_plot_max+2)
+    #     dt = (t[-1] - t[0])/(len(t) - 1)
+
+    #     fit__num_gv = self._generate_data_from_fit(model_type=model_type, t=t)
+    #     fit_nucleon_gv = self._generate_data_from_fit(model_type="corr", t=t)
+
+
+    #     for j, key in enumerate(fit_fh_num_gv.keys()):
+    #         eff_g00_fit = self.get_effective_g00(fit_fh_num_gv, fit_nucleon_gv, dt)[key][1:-1]
+
+    #         pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
+    #         plt.plot(t[1:-1], pm(eff_g00_fit, 0), '--', color=colors[j%len(colors)])
+    #         plt.plot(t[1:-1], pm(eff_g00_fit, 1), t[1:-1], pm(eff_g00_fit, -1), color=colors[j%len(colors)])
+
+    #         plt.fill_between(t[1:-1], pm(eff_g00_fit, -1), pm(eff_g00_fit, 1),
+    #                             facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
+    #     plt.title("Best fit for $N_{states} = $%s" %(self.n_states[model_type]), fontsize = 24)
+
+    # plt.ylim(np.max([lower_quantile - 0.5*delta_quantile, 0]),
+    #             upper_quantile + 0.5*delta_quantile)
+    # plt.xlim(t_plot_min-0.5, t_plot_max-.5)
+
+
+    plt.legend()
+    plt.grid(True)
+    #plt.ylim(0.95, 1.35)
+    #plt.ylim(1.1, 1.7)
+    plt.xlabel('$t$', fontsize = 24)
+    plt.ylabel(ylabel, fontsize = 24)
+    fig = plt.gcf()
+    if show_plot == True: plt.show()
+    else: plt.close()
+
+    return fig
+def plot_effective_mass(correlators_gv, t_plot_min = None, t_plot_max = 15,show_plot=True,):
+    if t_plot_min == None: t_plot_min = 0
+    if t_plot_max == None: t_plot_max = correlators_gv[correlators_gv.keys()[0]].shape[0] - 1
+
+    tau = +2
+    effective_mass = gv.BufferDict()
+    for key in correlators_gv.keys():
+        effective_mass[key] = (1.0/tau) * np.log(correlators_gv[key] / np.roll(correlators_gv[key], -tau))
+    t = np.arange(t_plot_min, t_plot_max)
+    for j, key in enumerate(sorted(correlators_gv.keys())):
+        y = gv.mean(effective_mass[key])[t]
+        y_err = gv.sdev(effective_mass[key])[t]
+        
+        tp = t + 0.1 - j*0.2
+        plt.errorbar(tp, y, xerr = 0.0, yerr=y_err, fmt='o', capsize=5.0,capthick=2.0, alpha=0.6, elinewidth=5.0, label=key)
+
+
+    # Label dirac/smeared data
+    plt.legend()
+    plt.grid(True)
+    plt.ylim(0.5, 0.75)
+    plt.xlabel('$t$', fontsize = 24)
+    plt.ylabel('$m_{eff}$', fontsize = 24)
+    fit = plt.gcf()
+    if show_plot == True: plt.show()
+    else: plt.close()
+    return fit
+
+def plot_correlators(correlators_gv, show_plot=True,t_plot_min = None, t_plot_max = None):
+    if t_plot_min == None: t_plot_min = 0
+    if t_plot_max == None: t_plot_max = correlators_gv[correlators_gv.keys()[0]].shape[0] - 1
+
+    x = range(t_plot_min, t_plot_max)
+    for j, key in enumerate(sorted(correlators_gv.keys())):
+        y = gv.mean(correlators_gv[key])[x]
+        y_err = gv.sdev(correlators_gv[key])[x]
+        
+        plt.errorbar(x, y, xerr = 0.0, yerr=y_err, fmt='o', capsize=5.0,capthick=2.0, alpha=0.6, elinewidth=5.0, label=key)
+
+
+    # Label dirac/smeared data
+    plt.legend()
+    plt.grid(True)
+    plt.xlabel('$t$', fontsize = 24)
+    plt.ylabel('$R(t)$ (FH-ratio)', fontsize = 24)
+    fit = plt.gcf()
+    if show_plot == True: plt.show()
+    else: plt.close()
+    return fit
+
+
+
 class eff_plots():
     def __init__(self):
         self.ax_meff = {}

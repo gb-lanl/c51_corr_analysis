@@ -80,12 +80,52 @@ def main():
     args = parser.parse_args()
     if args.save_figs and not os.path.exists('figures'):
         os.makedirs('figures')
-    print(args)
+    # print(args)
     # add path to the input file and load it
     sys.path.append(os.path.dirname(os.path.abspath(args.fit_params)))
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
-    print(fp.data_file, fp.corr_lst)
+
+    #     def pt3_fit_function(pt3_tsep_A3, pt3_tsep_V4, pt3_tau_A3, pt3_tau_V4, p,pt3_nstates,include_ga=True,include_gv=True):
+    #     E_list = {}
+    #     for i in range(pt3_nstates): #initialize       
+    #         E_list['E'+str(i)] = p['proton_E_0']
+
+    #     for i in range(1, pt3_nstates): #define Ei    
+    #         for j in range(1, i+1):
+    #                 E_list['E'+str(i)] += p['log(proton_dE_'+str(j)+')']
+
+    #     val = {}
+
+    #     if include_ga == True:
+    #         val['pt3_A3'] = p['proton_A3_00']*p['proton_zS_0']*p['proton_zP_0']*np.exp(-E_list['E0']*pt3_tsep_A3) 
+
+    #     if include_gv == True:
+    #         val['pt3_V4'] = p['proton_V4_00']*p['proton_zS_0']*p['proton_zP_0']*np.exp(-E_list['E0']*pt3_tsep_V4) 
+
+    #     for i in range(pt3_nstates):    
+    #         for j in range(pt3_nstates):
+    #             if i+j >= 1:
+    #                 if j == i:
+    #                     if include_ga == True:
+    #                         val['pt3_A3'] += p['proton_A3_'+str(j)+str(i)]*p['proton_zS_'+str(j)]*p['proton_zP_'+str(i)]*np.exp(-E_list['E'+str(j)]*pt3_tsep_A3)
+
+    #                     if include_gv == True:
+    #                         val['pt3_V4'] += p['proton_V4_'+str(j)+str(i)]*p['proton_zS_'+str(j)]*p['proton_zP_'+str(i)]*np.exp(-E_list['E'+str(j)]*pt3_tsep_V4)
+
+    #                 else:
+    #                     mi = np.minimum(j, i)
+    #                     ma = np.maximum(j, i)
+    #                     if include_ga == True:
+    #                         val['pt3_A3'] += p['proton_A3_'+str(mi)+str(ma)]*p['proton_zS_'+str(j)]*p['proton_zP_'+str(i)]*np.exp(-E_list['E'+str(j)]*pt3_tsep_A3)*np.exp((E_list['E'+str(j)]-E_list['E'+str(i)])*pt3_tau_A3)
+
+    #                     if include_gv == True:
+    #                         val['pt3_V4'] += p['proton_V4_'+str(mi)+str(ma)]*p['proton_zS_'+str(j)]*p['proton_zP_'+str(i)]*np.exp(-E_list['E'+str(j)]*pt3_tsep_V4)*np.exp((E_list['E'+str(j)]-E_list['E'+str(i)])*pt3_tau_V4)
+
+    #     return val
+    # result = pt3_fit_function(pt3_tsep_A3=8, pt3_tsep_V4=8, pt3_tau_A3=15, pt3_tau_V4=15, p=priors,pt3_nstates=2, include_ga=True,include_gv=True)
+    # print(result)
+    # print(fp.data_file, fp.corr_lst)
     # # twopt = []
     # # threept = []
     # # # print(fp.data_file[0])
@@ -98,89 +138,89 @@ def main():
     # data_two_pt = np.asarray(twopt)
     # print(data_two_pt)
 
-    # can only uncorrelate all or sets of corrs
-    if args.uncorr_all and args.uncorr_corrs:
-        sys.exit('you can only select uncorr_corrs or uncorr_all')
-    # re-weight correlators?
-    try:
-        reweight = fp.reweight
-    except:
-        reweight = False
-    # block data
-    bl = args.block
-    if 'block' in dir(fp) and fp.block != 1:
-        bl = fp.block
-    if args.block != 1: # allow cl override
-        bl = args.block
-    if reweight:
-        rw_files = fp.rw_files
-        rw_path = fp.rw_path
-        gv_data = ld.load_h5(fp.data_file, fp.corr_lst, rw=[rw_files, rw_path], bl=bl,
-                             uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all)
-        data_cfg = ld.load_h5(fp.data_file, fp.corr_lst, rw=[rw_files, rw_path], bl=bl,
-                             uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all, return_gv=False, verbose=False)
-    else:
-        gv_data = ld.load_h5(fp.data_file, fp.corr_lst, bl=bl,
-                             uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all)
-        data_cfg = ld.load_h5(fp.data_file, fp.corr_lst, bl=bl,
-                             uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all, return_gv=False, verbose=False)
-    if args.states:
-        states = args.states
-    else:
-        states = fp.fit_states
-    print(states)
-    print(gv_data)
-    x = copy.deepcopy(fp.x)
+    #can only uncorrelate all or sets of corrs
+    # if args.uncorr_all and args.uncorr_corrs:
+    #     sys.exit('you can only select uncorr_corrs or uncorr_all')
+    # # re-weight correlators?
+    # try:
+    #     reweight = fp.reweight
+    # except:
+    #     reweight = False
+    # # block data
+    # bl = args.block
+    # if 'block' in dir(fp) and fp.block != 1:
+    #     bl = fp.block
+    # if args.block != 1: # allow cl override
+    #     bl = args.block
+    # if reweight:
+    #     rw_files = fp.rw_files
+    #     rw_path = fp.rw_path
+    #     gv_data = ld.load_h5(fp.data_file, fp.corr_lst, rw=[rw_files, rw_path], bl=bl,
+    #                          uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all)
+    #     data_cfg = ld.load_h5(fp.data_file, fp.corr_lst, rw=[rw_files, rw_path], bl=bl,
+    #                          uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all, return_gv=False, verbose=False)
+    # else:
+    #     gv_data = ld.load_h5(fp.data_file, fp.corr_lst, bl=bl,
+    #                          uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all)
+    #     data_cfg = ld.load_h5(fp.data_file, fp.corr_lst, bl=bl,
+    #                          uncorr_corrs=args.uncorr_corrs, uncorr_all=args.uncorr_all, return_gv=False, verbose=False)
+    # if args.states:
+    #     states = args.states
+    # else:
+    #     states = fp.fit_states
+    # print(states)
+    # print(gv_data)
+    # x = copy.deepcopy(fp.x)
     
-    y = {k: v[x[k]['t_range']]
-        for (k,v) in gv_data if k.split('_')[0] in states}
-    for k in y:
-        if 'exp_r' in x[k]['type']:
-            sp = k.split('_')[-1]
-            y[k] = y[k] / gv_data[x[k]['denom'][0]+'_'+sp][x[k]['t_range']]
-            y[k] = y[k] / gv_data[x[k]['denom'][1]+'_'+sp][x[k]['t_range']]
-    if any(['mres' in k for k in y]):
-        mres_lst = [k.split('_')[0] for k in y if 'mres' in k]
-        mres_lst = list(set(mres_lst))
-        for k in mres_lst:
-            y[k] = y[k+'_MP'] / y[k+'_PP']
-    if any(['A3' in k for k in y]):
-        axial_lst = [k.split('_')[0] for k in y if 'A3' in k]
-        axial_lst = list(set(axial_lst))
-        for k in axial_lst:
-            y[k] = y[k+'_MP'] / y[k+'_PP']
+    # y = {k: v[x[k]['t_range']]
+    #     for (k,v) in gv_data if k.split('_')[0] in states}
+    # for k in y:
+    #     if 'exp_r' in x[k]['type']:
+    #         sp = k.split('_')[-1]
+    #         y[k] = y[k] / gv_data[x[k]['denom'][0]+'_'+sp][x[k]['t_range']]
+    #         y[k] = y[k] / gv_data[x[k]['denom'][1]+'_'+sp][x[k]['t_range']]
+    # if any(['mres' in k for k in y]):
+    #     mres_lst = [k.split('_')[0] for k in y if 'mres' in k]
+    #     mres_lst = list(set(mres_lst))
+    #     for k in mres_lst:
+    #         y[k] = y[k+'_MP'] / y[k+'_PP']
+    # if any(['A3' in k for k in y]):
+    #     axial_lst = [k.split('_')[0] for k in y if 'A3' in k]
+    #     axial_lst = list(set(axial_lst))
+    #     for k in axial_lst:
+    #         y[k] = y[k+'_MP'] / y[k+'_PP']
 
     
-    n_states = dict()
-    for state in states:
-        for k in x:
-            if state in k:
-                if state in k and 'mres' not in k:
-                    n_states[state] = x[k]['n_state']
-    priors = dict()
-    for k in fp.priors:
-        for state in states:
-            if 'mres' not in k:
-                k_n = int(k.split('_')[-1].split(')')[0])
-                if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
-            elif 'mres' in k:
+    # n_states = dict()
+    # for state in states:
+    #     for k in x:
+    #         if state in k:
+    #             if state in k and 'mres' not in k:
+    #                 n_states[state] = x[k]['n_state']
+    # priors = dict()
+    # for k in fp.priors:
+    #     for state in states:
+    #         if 'mres' not in k:
+    #             k_n = int(k.split('_')[-1].split(')')[0])
+    #             if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
+    #                 priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
+    #         elif 'mres' in k:
 
-                mres = k.split('_')[0]
-                if mres in states:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
-            elif ['A3','V4'] in k:
-                if [A3, V4] in states:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
+    #             mres = k.split('_')[0]
+    #             if mres in states:
+    #                 priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
+    #         elif ['A3','V4'] in k:
+    #             if [A3, V4] in states:
+    #                 priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
 
 
-    print(x)
-    # print(x,y,n_states,priors)
+    # print(x)
+    # # print(x,y,n_states,priors)
     
-    if args.eff:
-        plt.ion()
-        effective = plot.eff_plots()
-        effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs)
+    # if args.eff:
+    #     plt.ion()
+    #     effective = plot.eff_plots()
+    #     effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs)
         
     # # # set up svdcut if added
     # # if args.svdcut is not None:

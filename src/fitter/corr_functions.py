@@ -18,9 +18,17 @@ class CorrFunction:
         g.s. energy is energy
         e.s. energies are given as dE_n = E_n - E_{n-1}
         '''
-        E = p['%s_E_0' % x['state']]
-        for i in range(1, n+1):
-            E += p['%s_dE_%d' % (x['state'], i)]
+        if x['state'] in ['proton_A3','proton_V4']:
+            E = p['%s_00' % (x['state'].split('_')[1])]
+            for i in range(1, n+1):
+                E += p['%s_dE_%d' % (x['state'], i)]
+
+        else:
+            E = p['%s_E_0' % x['state']]
+            for i in range(1, n+1):
+                E += p['%s_dE_%d' % (x['state'], i)]
+
+                
         return E
 
     def dEn(self, x, p, n):

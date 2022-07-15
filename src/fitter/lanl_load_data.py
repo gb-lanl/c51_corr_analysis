@@ -52,7 +52,7 @@ def time_reverse(corr, reverse=True, phase=1, time_axis=1):
     return cr
 
 def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=False, uncorr_all=False, verbose=True):
-    corrs = gv.BufferDict()
+    corrs = []
 
     # check if f5_file is list
     if not isinstance(f5_file, list):
@@ -80,6 +80,7 @@ def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=Fals
 
     # collect correlators
     for corr in corr_dict:
+        print(corr)
         weights   = corr_dict[corr]['weights']
         t_reverse = corr_dict[corr]['t_reverse']
         # dsets = corr_dict[corr]['dsets']
@@ -93,7 +94,7 @@ def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=Fals
             with h5.open_file(f5_files[0], 'r') as f5:
                 dsets = corr_dict[corr]['dsets']
                 data = np.zeros_like(f5.get_node('/'+dsets[0]).read())
-                print(data)
+                # print(data)
                 for i_d, dset in enumerate(dsets):
                     if 'phase' in corr_dict[corr]:
                         phase = corr_dict[corr]['phase'][i_d]
@@ -159,49 +160,68 @@ def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=Fals
 
             # load lanl 2pt data, which is structured differently from callat data
             # need to stack SS, PS dsets together    
+            if corr_dict[corr]['type'] == 'cosh':
+            # if 'pion' in corr_dict[corr]:
+                with h5.open_file(f5_files[0], 'r') as f5:
+                    data_SS_ = f5.get_node('/'+corr_dict[corr]['dsets'][0]).read()
+                    data_PS_ = f5.get_node('/'+corr_dict[corr]['dsets'][1]).read()
+                    data = np.stack((data_SS_,data_PS_),axis=0)
+                    # print(data[1])
+                    # data = np.stack((data_SS,data_PS),axis=1)
+                for corr in corrs:
+
+                    corrs[corr+'_SS'] = data[0]
+                    corrs[corr+'_PS'] = data[1]
+
             elif corr_dict[corr]['stack']:
+            # if 'proton' in corr_dict[corr]:
                 with h5.open_file(f5_files[0], 'r') as f5:
                     data_SS = f5.get_node('/'+corr_dict[corr]['dsets'][0]).read()
                     data_PS = f5.get_node('/'+corr_dict[corr]['dsets'][1]).read()
+                    data = np.stack((data_SS,data_PS),axis=0)
+                    # print(data[1])
                     # data = np.stack((data_SS,data_PS),axis=1)
-                    corrs[corr+'_SS'] = data_SS
-                    corrs[corr+'_PS'] = data_PS
-                    # import IPython 
-                    # IPython.embed()
-                    # print(data)
-                    # if len(f5_files) > 1:
-                    #     for f_i in range(1, len(f5_files)):
-                    #         with h5.open_file(f5_files[f_i], 'r') as f5:
-                    #             data_SS = f5.get_node('/'+corr_dict[corr]['dsets'][0]).read()
-                    #             data_PS = f5.get_node('/'+corr_dict[corr]['dsets'][1]).read()
-                    #             tmp     = np.stack((data_SS,data_PS),axis=-1)
-
-                    #             data    = np.concatenate((data, tmp), axis=0)
-                # corrs[corr+'_SS'] = data[...,0]
-                # corrs[corr+'_PS'] = data[...,1]
+                for corr in corrs:
+                    corrs[corr+'_SS'] = data[0]
+                    corrs[corr+'_PS'] = data[1]
                 
             # spin-averaging: combining spin u to spin u and spin dn to spin dn corr fcns 
             # (V4: + , A3: -) reduces stochastic uncertainty of the data 
             # https://arxiv.org/abs/2104.05226                       
-            elif corr_dict['A3']['q_bilinear'] ==True:
+            elif corr_dict[corr]['axial']:
                 with h5.open_file(f5_files[0], 'r') as f5:
-                    data_D = f5.get_node('/'+corr_dict['A3']['dsets'][0]).read()
-                    data_U = f5.get_node('/'+corr_dict['A3']['dsets'][1]).read()
-                    for i in range(len(data_D)):
-                        data_a3 = np.subtract(data_U[i][1] ,data_D[i][1])
+                    data_D = f5.get_node('/'+corr_dict[corr]['dsets'][0]).read()
+                    data_U = f5.get_node('/'+corr_dict[corr]['dsets'][1]).read()
+                    # print(data_D)
+                    data=np.stack((data_U,data_D))
+                    print(data)
+                for corr in corrs:
+                    corrs[corr] = data
+
+                    #     print(np.subtract(data_U[i][1] ,data_D[i][1]))
+                        # print(np.array(data_a3,dtype=np.float64))
                     # import IPython 
                     # IPython.embed()
                     # print(data_U,data_D)
 
-                        corrs['A3'] = data_a3
-
-            elif corr_dict['V4']['q_bilinear'] == True:
+            elif corr_dict[corr]['vector']:
                 with h5.open_file(f5_files[0], 'r') as f5:
-                    data_D_ = f5.get_node('/'+corr_dict['V4']['dsets'][0]).read()
-                    data_U_ = f5.get_node('/'+corr_dict['V4']['dsets'][1]).read()
-                    for i in range(len(data_D_)):
-                        data_v4 = np.add(data_U_[i][0] ,data_D_[i][0])
-                        corrs['V4'] = data_v4
+                    data_D = f5.get_node('/'+corr_dict[corr]['dsets'][0]).read()
+                    data_U = f5.get_node('/'+corr_dict[corr]['dsets'][1]).read()
+                    # print(data_D)A3
+                    data=np.stack((data_U,data_D))
+                for corr in corrs:
+                    corrs[corr] = data
+
+                
+
+            # elif corr_dict['V4']['q_bilinear'] == True:
+            #     with h5.open_file(f5_files[0], 'r') as f5:
+            #         data_D_ = f5.get_node('/'+corr_dict['V4']['dsets'][0]).read()
+            #         data_U_ = f5.get_node('/'+corr_dict['V4']['dsets'][1]).read()
+            #         for i in range(len(data_D_)):
+            #             data_v4 = np.add(data_U_[i][0] ,data_D_[i][0])
+            #             corrs['V4'] = data_v4[:]
 
             else:
                 for i, snk in enumerate(corr_dict[corr]['snks']):
@@ -284,6 +304,7 @@ def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=Fals
             corrs_gv = gv.dataset.avg_data(corrs)
         return corrs_gv
     else:
+        print(corrs)
         return corrs
 
 

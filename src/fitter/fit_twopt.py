@@ -2,6 +2,9 @@ import fitter.plotting as plot
 import fitter.corr_functions as cf
 import fitter.load_data as ld
 import fitter.bootstrap as bootstrap
+import fitter.three_pt_manage as fm
+import fitter.fit_collect as collect
+import pandas as pd
 import lsqfit
 import gvar as gv
 import importlib
@@ -39,6 +42,10 @@ def main():
                         help=            'specify bin/blocking size in terms of saved configs')
     parser.add_argument('--eff',         default=True, action='store_true',
                         help=            'plot effective mass and z_eff data? [%(default)s]')
+    parser.add_argument('--axial_eff',    default=True, action='store_true',
+                        help=            'plot effective mass of gA data? [%(default)s]')
+    parser.add_argument('--vector_eff',    default=True, action='store_true',
+                        help=            'plot effective mass of gV data? [%(default)s]')                              
     parser.add_argument('--mres',         default=False, action='store_true',
                         help=            'plot mres avg data with fit? [%(default)s]')
     parser.add_argument('--scale',       default=None, nargs=2,
@@ -118,18 +125,35 @@ def main():
     else:
         states = fp.fit_states
 
-    print(gv_data)
+    # print(gv_data)
+    axial_fh_num_gv = {}
+    vector_fh_num_gv = {}
+    corr_gv = {}
+    axial_fh_num_gv['SS'] = gv_data['proton_A3_SS']
+    axial_fh_num_gv['PS'] = gv_data['proton_A3_PS']
+    vector_fh_num_gv['SS'] = gv_data['proton_V4_SS']
+    vector_fh_num_gv['PS'] = gv_data['proton_V4_PS']
+    corr_gv['SS'] = gv_data['proton_SS']
+    corr_gv['PS'] = gv_data['proton_PS']
 
-    # pulling in prepared x,y data, n_states from input file, and necessary priors to run fit 
+    # make effective g_00 plot from fh_num / nucleon correlator    
+    # if args.axial_eff:
+    #     plot.plot_effective_g00(axial_fh_num_gv, corr_gv, 1, 14,observable='gA')
+    # if args.vector_eff:
+    #     plot.plot_effective_g00(vector_fh_num_gv, corr_gv, 1, 14,observable='gV')
+
+    # plot.plot_effective_mass(corr_gv, 1, 16)
     x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
+
+
     
-    if args.eff:
-        #plt.ion()
-        effective = plot.eff_plots()
-        effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,
-        gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs,x=x)
-    # if args.mres:
-    #     plot.plot_mres(ax, dsets, key, svdcut=args.svdcut, stability=args.stability)
+    # if args.eff:
+    #     #plt.ion()
+    #     effective = plot.eff_plots()
+    #     effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,
+    #     gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs,x=x)
+    # # if args.mres:
+    # #     plot.plot_mres(ax, dsets, key, svdcut=args.svdcut, stability=args.stability)
 
     #set up svdcut if added
     if args.svdcut is not None:
@@ -146,7 +170,22 @@ def main():
         plot.make_stability_plot(states=args.states,x=x,fp=fp,gv_data=gv_data, stability=args.stability,priors=priors, 
         scale = args.scale, svd_test=args.svd_test, data_cfg = data_cfg,n_states=n_states, 
         svd_nbs=args.svd_nbs, es_stability=args.es_stability,save_figs=args.save_figs)
+    # for k in x:
+    #     t_range = np.arange(
+    #                 x[k]['t_range'][0], x[k]['t_range'][-1]+.1, .1)
+    #     print(t_range)
 
+    #     test = collect.fitter(n_states, priors, t_range)
+    #     test.get_fit()
+    
+    
+    #     fit_ensemble = fm.fit_ensemble(t_range=t_range[k],
+    #                            n_states=fp.corr_lst[corr]['n_state'], prior=priors, 
+    #                            nucleon_corr_gv=corr_gv, 
+    #                            axial_fh_num_gv=axial_fh_num_gv,
+    #                            vector_fh_num_gv=vector_fh_num_gv)
+
+    # print(fit_ensemble)
     if args.fit:
         fit_funcs = cf.FitCorr()
         p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
@@ -178,33 +217,33 @@ def main():
         else:
             print(fit)
 
-        if args.gui:
-            from lsqfitgui import run_server
-            run_server(fit, name="c51 Two-Point Fitter")
+    #     if args.gui:
+    #         from lsqfitgui import run_server
+    #         run_server(fit, name="c51 Two-Point Fitter")
 
-        if args.eff:
-            #x_plot = copy.deepcopy(x_fit)
-            effective.make_eff_plots(states=states, fp=fp, x_fit=x_fit,fit=fit,gv_data=gv_data, priors=priors, 
-                                scale=args.scale,show_fit=True,save_figs=args.save_figs,x=x)
-        # run bootstrapping routine: 
-        # - ensure bs_dir exits
-        # - run bs loop with fit posterior as initial guess 
-        # - set seed if not defined 
-        # - make BS data 
-        # - make BS list for priors
-        # - set up posterior lists of bs results 
-        # - write out bs results 
-        if args.bs:
-            bootstrap.run_bs(bs_write=args.bs_write, bs_results=args.bs_results, 
-                                bs_path=args.bs_path,overwrite=args.overwrite,Nbs=args.Nbs, fit=fit,
-                                bs_seed=args.bs_seed, verbose=args.verbose, data_cfg=data_cfg, priors=priors,
-                                states=states,has_svd=has_svd, fp =fp,x_fit=x_fit,svdcut=svdcut)
+    #     if args.eff:
+    #         #x_plot = copy.deepcopy(x_fit)
+    #         effective.make_eff_plots(states=states, fp=fp, x_fit=x_fit,fit=fit,gv_data=gv_data, priors=priors, 
+    #                             scale=args.scale,show_fit=True,save_figs=args.save_figs,x=x)
+    #     # run bootstrapping routine: 
+    #     # - ensure bs_dir exits
+    #     # - run bs loop with fit posterior as initial guess 
+    #     # - set seed if not defined 
+    #     # - make BS data 
+    #     # - make BS list for priors
+    #     # - set up posterior lists of bs results 
+    #     # - write out bs results 
+    #     if args.bs:
+    #         bootstrap.run_bs(bs_write=args.bs_write, bs_results=args.bs_results, 
+    #                             bs_path=args.bs_path,overwrite=args.overwrite,Nbs=args.Nbs, fit=fit,
+    #                             bs_seed=args.bs_seed, verbose=args.verbose, data_cfg=data_cfg, priors=priors,
+    #                             states=states,has_svd=has_svd, fp =fp,x_fit=x_fit,svdcut=svdcut)
 
-        if args.svd_test:
-            fig = plt.figure('svd_diagnosis', figsize=(7, 4))
-            svd_test.plot_ratio(show=True)
-    if args.interact:
-        import IPython; IPython.embed()
+    #     if args.svd_test:
+    #         fig = plt.figure('svd_diagnosis', figsize=(7, 4))
+    #         svd_test.plot_ratio(show=True)
+    # if args.interact:
+    #     import IPython; IPython.embed()
 
     plt.ioff()
     plt.show()

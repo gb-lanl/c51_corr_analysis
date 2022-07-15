@@ -4,21 +4,17 @@ import gvar as gv
 
 class fitter(object):
 
-    def __init__(self, n_states, t_range,
-                pt2_nstates, pt3_nstates, sum_nstates,
-                nucleon_corr_gv=None, axial_num_gv=None, vector_num_gv=None):
+    def __init__(self, n_states, prior, t_range,
+                 nucleon_corr_gv=None, axial_fh_num_gv=None, vector_fh_num_gv=None):
 
         self.n_states = n_states
         self.t_range = t_range
-        # self.prior = prior
+        self.prior = prior
         self.nucleon_corr_gv = nucleon_corr_gv
-        self.axial_num_gv = axial_num_gv
-        self.vector_num_gv = vector_num_gv
+        self.axial_fh_num_gv = axial_fh_num_gv
+        self.vector_fh_num_gv = vector_fh_num_gv
         self.fit = None
-        self.prior = None
-        self.pt2_nstates = pt2_nstates
-        self.pt3_nstates = pt3_nstates
-        self.sum_nstates = sum_nstates
+        self.prior = self._make_prior(prior)
 
 
     def get_fit(self):
@@ -26,16 +22,6 @@ class fitter(object):
             return self.fit
         else:
             return self._make_fit()
-    def get_prior(self):
-        if self.prior is not None:
-            return self.prior
-        else:
-            return self._make_prior()
-
-    def get_data(self):
-        return self._make_data()
-    
-
 
     def get_energies(self):
 
@@ -45,7 +31,7 @@ class fitter(object):
         else:
             temp_fit = self.get_fit()
 
-        max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
+        max_n_states = np.max([self.n_states[key] for key in self.n_states.keys()])
         output = gv.gvar(np.zeros(max_n_states))
         output[0] = temp_fit.p['E0']
         for k in range(1, max_n_states):
@@ -62,56 +48,52 @@ class fitter(object):
         models = self._make_models_simult_fit()
 
         fitter = lsqfit.MultiFitter(models=models)
-        fit = fitter.lsqfit(data=self._make_data(), prior=self._make_prior())
+        fit = fitter.lsqfit(data=self._make_data(), prior=self.prior)
         self.fit = fit
         return fit
 
     def _make_models_simult_fit(self):
         models = np.array([])
 
-        # if self.nucleon_corr_gv is not None:
-        #     for sink in list(self.nucleon_corr_gv.keys()):
-        #         param_keys = {
-        #             'E0'      : 'E0',
-        #             # 'E1'      : 'E1',
-        #             # 'E2'      : 'E2',
-        #             # 'E3'      : 'E3',
-        #             'log(dE)' : 'log(dE)'+sink,
-        #             'z0'      : 'z_'+sink,
-        #         }
-        #         models = np.append(models,
-        #                 baryon_model(datatag="nucleon_"+sink,
-        #                 t=list(range(self.t_range['corr'][0], self.t_range['corr'][1])),
-        #                 param_keys=param_keys, n_states=self.n_states['corr']))
-
-        if self.axial_num_gv is not None:
-            for keys in list(self.axial_num_gv.keys()):
+        if self.nucleon_corr_gv is not None:
+            for sink in self.nucleon_corr_gv.keys():
                 param_keys = {
                     'E0'      : 'E0',
                     'log(dE)' : 'log(dE)',
-                    'd'       : 'd_A_'+keys,
-                    'A3_nm'    : 'A3_nm',
-                    'z'      : 'z_'+keys,
+                    'z'      : 'z_'+sink,
                 }
                 models = np.append(models,
-                        fh_num_model(datatag="axial_num_"+keys,
-                        t=list(range(self.t_range['gA'][0], self.t_range['gA'][1])),
-                        param_keys=param_keys, n_states=self.n_states['gA']))
+                           baryon_model(datatag="nucleon_"+sink,
+                           t=range(self.t_range['corr'][0], self.t_range['corr'][1]),
+                           param_keys=param_keys, n_states=self.n_states['corr']))
 
-        if self.vector_num_gv is not None:
-            for keys in list(self.vector_num_gv.keys()):
-                
+        if self.axial_fh_num_gv is not None:
+            for sink in self.axial_fh_num_gv.keys():
                 param_keys = {
                     'E0'      : 'E0',
                     'log(dE)' : 'log(dE)',
-                    'd'       : 'd_V_'+keys,
-                    'V4_nm'    : 'V4_nm',
-                    'z'      : 'z_'+keys,
+                    'd'       : 'd_A_'+sink,
+                    'g_nm'    : 'g_A_nm',
+                    'z'      : 'z_'+sink,
                 }
                 models = np.append(models,
-                        fh_num_model(datatag="vector_num_"+keys,
-                        t=list(range(self.t_range['gV'][0], self.t_range['gV'][1])),
-                        param_keys=param_keys, n_states=self.n_states['gV']))
+                           fh_num_model(datatag="axial_fh_num_"+sink,
+                           t=range(self.t_range['gA'][0], self.t_range['gA'][1]),
+                           param_keys=param_keys, n_states=self.n_states['gA']))
+
+        if self.vector_fh_num_gv is not None:
+            for sink in self.vector_fh_num_gv.keys():
+                param_keys = {
+                    'E0'      : 'E0',
+                    'log(dE)' : 'log(dE)',
+                    'd'       : 'd_V_'+sink,
+                    'g_nm'    : 'g_V_nm',
+                    'wf'      : 'wf_'+sink,
+                }
+                models = np.append(models,
+                           fh_num_model(datatag="vector_fh_num_"+sink,
+                           t=range(self.t_range['gV'][0], self.t_range['gV'][1]),
+                           param_keys=param_keys, n_states=self.n_states['gV']))
 
         return models
 
@@ -119,106 +101,55 @@ class fitter(object):
     def _make_data(self):
         data = {}
         if self.nucleon_corr_gv is not None:
-            for sink in list(self.nucleon_corr_gv.keys()):
+            for sink in self.nucleon_corr_gv.keys():
                 data["nucleon_"+sink] = self.nucleon_corr_gv[sink][self.t_range['corr'][0]:self.t_range['corr'][1]]
 
-        if self.axial_num_gv is not None:
-            for ens in list(self.axial_num_gv.keys()):
-                data["axial_num_"+ens] = self.axial_num_gv[ens][self.t_range['gA'][0]:self.t_range['gA'][1]]
+        if self.axial_fh_num_gv is not None:
+            for sink in self.axial_fh_num_gv.keys():
+                data["axial_fh_num_"+sink] = self.axial_fh_num_gv[sink][self.t_range['gA'][0]:self.t_range['gA'][1]]
 
-        if self.vector_num_gv is not None:
-            for ens in list(self.vector_num_gv.keys()):
-                data["vector_num_"+ens]  = self.vector_num_gv[ens][self.t_range['gV'][0]:self.t_range['gV'][1]]
+        if self.vector_fh_num_gv is not None:
+            for sink in self.vector_fh_num_gv.keys():
+                data["vector_fh_num_"+sink] = self.vector_fh_num_gv[sink][self.t_range['gV'][0]:self.t_range['gV'][1]]
 
         return data
 
-    def _make_prior(self):
+    def _make_prior(self, prior):
+        resized_prior = {}
 
-        prior =  {} 
+        max_n_states = np.max([self.n_states[key] for key in self.n_states.keys()])
+        for key in prior.keys():
+            if key == 'g_A_nm':
+                resized_prior[key] = prior[key][:self.n_states['gA'], :self.n_states['gA']]
+            elif key == 'g_V_nm':
+                resized_prior[key] = prior[key][:self.n_states['gV'], :self.n_states['gV']]
+            elif key in ['d_A_dir', 'd_A_smr']:
+                resized_prior[key] = prior[key][:self.n_states['gA']]
+            elif key in ['d_V_dir', 'd_V_smr']:
+                resized_prior[key] = prior[key][:self.n_states['gV']]
+            else:
+                resized_prior[key] = prior[key][:max_n_states]
 
-        prior['E0'] = gv.gvar(0.50, 0.05)
-        prior['z0'] = gv.gvar(0.00034, 0.00034)
+        new_prior = resized_prior.copy()
+        new_prior['E0'] = resized_prior['E'][0]
 
-        prior['log(dE1)'] = gv.gvar(-1.25, 0.5)
-        prior['z1'] = gv.gvar(0, 0.00025)
+        # Don't need this entry
+        new_prior.pop('E', None)
 
-        prior['log(dE2)'] = gv.gvar(-1.25, 0.5)
-        prior['z2'] = gv.gvar(0, 0.00015)
+        # We force the energy to be positive by using the log-normal dist of dE
+        # let log(dE) ~ eta; then dE ~ e^eta
+        new_prior['log(dE)'] = gv.gvar(np.zeros(len(resized_prior['E']) - 1))
+        for j in range(len(new_prior['log(dE)'])):
+            #excited_state_energy = p[self.mass] + np.sum([np.exp(p[self.log_dE][k]) for k in range(j-1)], axis=0)
 
-        max_nstate = max(np.array([self.pt2_nstates, self.pt3_nstates, self.sum_nstates]))
+            # Notice that I've coded this s.t.
+            # the std is determined entirely by the excited state
+            dE_mean = gv.mean(resized_prior['E'][j+1] - resized_prior['E'][j])
+            dE_std = gv.sdev(resized_prior['E'][j+1])
 
-        if max_nstate > 3:
-            for i in range(3, max_nstate):
-                prior['log(dE'+str(i)+')'] = gv.gvar(-1.25, 0.5)
-                prior['z'+str(i)] = gv.gvar(0, 0.00015)
+            new_prior['log(dE)'][j] = np.log(gv.gvar(dE_mean, dE_std))
 
-        prior['log(dE'+str(max_nstate-1)+')'] = gv.gvar(-1.25, 0.5*5) # garbage can
-
-        prior['log(E_sum)'] = gv.gvar(-1.25, 0.5*5) 
-        prior['z_sum'] = gv.gvar(0, 0.00015) 
-
-        prior['A3_00'] = gv.gvar(1.2, 0.2)
-        prior['V4_00'] = gv.gvar(1.0, 0.2)
-
-        ff_nstates = max(np.array([self.pt3_nstates, self.sum_nstates]))
-
-        for i in range(ff_nstates):
-            for j in range(ff_nstates):
-                if i+j >= 1:
-                    if j < i:  
-                        prior['A3_'+str(j)+str(i)] = gv.gvar(0, 1)
-                        prior['V4_'+str(j)+str(i)] = gv.gvar(0, 1)
-
-                    elif j == i:
-                        prior['A3_'+str(j)+str(i)] = gv.gvar(0, 1)
-                        prior['V4_'+str(j)+str(i)] = gv.gvar(1, 0.2)
-
-        for i in range(self.sum_nstates-1):
-            prior['sum_A3_'+str(i)] = gv.gvar(0, 1)
-            prior['sum_V4_'+str(i)] = gv.gvar(0, 1)
-
-        prior['sum_A3_'+str(self.sum_nstates-1)] = gv.gvar(0, 1)
-        prior['sum_V4_'+str(self.sum_nstates-1)] = gv.gvar(1, 0.2)
-
-        return prior
-        # resized_prior = {}
-
-        # max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
-        # for key in list(prior.keys()):
-        #     if key == 'g_A_nm':
-        #         resized_prior[key] = prior[key][:self.n_states['gA'], :self.n_states['gA']]
-        #     elif key == 'g_V_nm':
-        #         resized_prior[key] = prior[key][:self.n_states['gV'], :self.n_states['gV']]
-        #     elif key in ['d_A_dir', 'd_A_smr']:
-        #         resized_prior[key] = prior[key][:self.n_states['gA']]
-        #     elif key in ['d_V_dir', 'd_V_smr']:
-        #         resized_prior[key] = prior[key][:self.n_states['gV']]
-        #     else:
-        #         resized_prior[key] = prior[key][:max_n_states]
-
-        # new_prior = resized_prior.copy()
-        # new_prior['E0'] = resized_prior['E'][0]
-        # # Don't need this entry
-        # new_prior.pop('E', None)
-
-        # # We force the energy to be positive by using the log-normal dist of dE
-        # # let log(dE) ~ eta; then dE ~ e^eta
-        # new_prior['log(dE)'] = gv.gvar(np.zeros(len(resized_prior['E']) - 1))
-        # for j in range(len(new_prior['log(dE)'])):
-        #     #excited_state_energy = p[self.mass] + np.sum([np.exp(p[self.log_dE][k]) for k in range(j-1)], axis=0)
-
-        #     # Notice that I've coded this s.t.
-        #     # the std is determined entirely by the excited state
-        #     # dE_mean = gv.mean(resized_prior['E'][j+1] - resized_prior['E'][j])
-        #     # dE_std = gv.sdev(resized_prior['E'][j+1])
-        #     temp = gv.gvar(resized_prior['E'][j+1]) - gv.gvar(resized_prior['E'][j])
-        #     temp2 = gv.gvar(resized_prior['E'][j+1])
-        #     temp_gvar = gv.gvar(temp.mean,temp2.sdev)
-        #     new_prior['log(dE)'][j] = np.log(temp_gvar)
-
-        # return new_prior
-
-
+        return new_prior
 
 # This class is needed to instantiate an object for lsqfit.MultiFitter
 # There's probably a better way to do it, but the documentation is lacking
@@ -237,14 +168,14 @@ class baryon_model(lsqfit.MultiFitterModel):
         if t is None:
             t = self.t
 
-        z = p[self.param_keys['z']]
+        wf = p[self.param_keys['wf']]
         E0 = p[self.param_keys['E0']]
         log_dE = p[self.param_keys['log(dE)']]
 
-        output = z[0] * np.exp(-E0 * t)
+        output = wf[0] * np.exp(-E0 * t)
         for j in range(1, self.n_states):
             excited_state_energy = E0 + np.sum([np.exp(log_dE[k]) for k in range(j)], axis=0)
-            output = output + z[j] * np.exp(-excited_state_energy * t)
+            output = output + wf[j] * np.exp(-excited_state_energy * t)
         return output
 
     # The prior determines the variables that will be fit by multifitter --
@@ -282,7 +213,7 @@ class fh_num_model(lsqfit.MultiFitterModel):
             t = self.t
 
 
-        z = p[self.param_keys['z']]
+        wf = p[self.param_keys['wf']]
         E0 = p[self.param_keys['E0']]
         log_dE = np.append(-np.inf, p[self.param_keys['log(dE)']])
         d = p[self.param_keys['d']]
@@ -295,7 +226,7 @@ class fh_num_model(lsqfit.MultiFitterModel):
             for m in range(self.n_states):
                 if n == m:
                     #if m > n: g_nm[n, m] = g_nm[m, n]
-                    output += ((t-1)*z[n]*g_nm[n, m] + d[n]) * np.exp(-E[n] * t)
+                    output += ((t-1)*wf[n]*g_nm[n, m] + d[n]) * np.exp(-E[n] * t)
                 else:
                     pass
                     E_n = E[n]
@@ -303,7 +234,7 @@ class fh_num_model(lsqfit.MultiFitterModel):
                     dE_nm = E_n - E_m
                     dE_mn = -dE_nm
 
-                    output += (z[n]*g_nm[n, m]) * ((np.exp(dE_nm/2 - E_n*t) - np.exp(dE_mn/2 - E_m*t)) /
+                    output += (wf[n]*g_nm[n, m]) * ((np.exp(dE_nm/2 - E_n*t) - np.exp(dE_mn/2 - E_m*t)) /
                                                     (np.exp(dE_mn/2) - np.exp(dE_nm/2)))
         return output
 
