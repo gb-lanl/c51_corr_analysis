@@ -123,9 +123,9 @@ class fitter(object):
                 resized_prior[key] = prior[key][:self.n_states['gA'], :self.n_states['gA']]
             elif key == 'g_V_nm':
                 resized_prior[key] = prior[key][:self.n_states['gV'], :self.n_states['gV']]
-            elif key in ['d_A_dir', 'd_A_smr']:
+            elif key in ['d_A_PS', 'd_A_SS']:
                 resized_prior[key] = prior[key][:self.n_states['gA']]
-            elif key in ['d_V_dir', 'd_V_smr']:
+            elif key in ['d_V_PS', 'd_V_SS']:
                 resized_prior[key] = prior[key][:self.n_states['gV']]
             else:
                 resized_prior[key] = prior[key][:max_n_states]

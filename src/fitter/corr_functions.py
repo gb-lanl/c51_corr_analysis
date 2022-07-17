@@ -18,23 +18,23 @@ class CorrFunction:
         g.s. energy is energy
         e.s. energies are given as dE_n = E_n - E_{n-1}
         '''
-        if x['state'] in ['proton_A3','proton_V4']:
-            E = p['%s_00' % (x['state'].split('_')[1])]
-            for i in range(1, n+1):
-                E += p['%s_dE_%d' % (x['state'], i)]
-
+        if x['state'] in ['gA','gV']:
+             E = p['%s_nm' % x['state']]
+             for i in range(1, n+1):
+                E += p['%s_dE_%d' % (x['proton'], i)] #use wf overlap for proton
         else:
             E = p['%s_E_0' % x['state']]
             for i in range(1, n+1):
                 E += p['%s_dE_%d' % (x['state'], i)]
-
-                
         return E
 
     def dEn(self, x, p, n):
-        E = p['%s_dE_1' % x['state']]
-        for i in range(2, n+1):
-            E += p['%s_dE_%d' % (x['state'], i)]
+        if x['state'] in ['gA','gV']:
+             E = p['%s_nm' % x['state']]
+        else:
+            E = p['%s_dE_1' % x['state']]  
+            for i in range(2, n+1):
+                E += p['%s_dE_%d' % (x['state'], i)]
         return E
 
     def E_el_n(self, x, p, n):
@@ -51,9 +51,17 @@ class CorrFunction:
         for n in range(x['n_state']):
             E_n = self.En(x, p, n)
             if x['ztype'] == 'z_snk z_src':
-                z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
-                z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]
-                r += z_snk * z_src * np.exp(-E_n*t)
+                if 'gA' in x['state'] :
+                    x['d']    = p['dA_'+snk]
+                    x['g_nm'] = 'gA_nm'
+
+                    z_src = p["%s_z%s_%d" % (x['proton'], x['src'], n)]
+                    z_snk = p["%s_z%s_%d" % (x['proton'], x['snk'], n)]
+                    r += z_snk * z_src * np.exp(-E_n*t)
+                else:
+                    z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
+                    z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]
+                    r += z_snk * z_src * np.exp(-E_n*t)
             elif x['ztype'] == 'A_snk,src':
                 A = p['%s_z%s%s_%d' % (x['state'], x['snk'], x['src'], n)]
                 r += A * np.exp(-E_n*t)
@@ -315,3 +323,25 @@ class FitCorr(object):
             else:
                 sys.exit('Unrecognized fit model, %s' %x[k]['type'])
         return r
+
+    def threept_fit_function(self,x,p):
+        r = dict()
+        E = np.array([np.sum([np.exp(log_dE[j]) for j in range(n+1)]) for n in range(self.n_states)]) + E0
+
+        output = 0
+        for n in range(self.n_states):
+            for m in range(self.n_states):
+                if n == m:
+                    #if m > n: g_nm[n, m] = g_nm[m, n]
+                    output += ((t-1)*wf[n]*g_nm[n, m] + d[n]) * np.exp(-E[n] * t)
+                else:
+                    pass
+                    E_n = E[n]
+                    E_m = E[m]
+                    dE_nm = E_n - E_m
+                    dE_mn = -dE_nm
+
+                    output += (wf[n]*g_nm[n, m]) * ((np.exp(dE_nm/2 - E_n*t) - np.exp(dE_mn/2 - E_m*t)) /
+                                                    (np.exp(dE_mn/2) - np.exp(dE_nm/2)))
+        return output
+

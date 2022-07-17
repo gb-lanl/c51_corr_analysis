@@ -29,18 +29,30 @@ def make_fit_params(fp,states,gv_data):
             if state in k:
                 if state in k and 'mres' not in k:
                     n_states[state] = x[k]['n_state']
-    priors = dict()
-    for k in fp.priors:
-        for state in states:
-            if 'mres' not in k:
-                k_n = int(k.split('_')[-1].split(')')[0])
-                if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
-            else:
-                mres = k.split('_')[0]
-                if mres in states:
-                    priors[k] = gv.gvar(fp.priors[k].mean, fp.priors[k].sdev)
-    return x,y,n_states,priors
+
+    resized_prior = {}
+    max_n_states = np.max([n_states[key] for key in n_states.keys()])
+    prior = fp.priors
+    for k in prior.keys():
+        if k == 'gA_nm':
+            resized_prior[k] = prior[k][:n_states['gA']]#, :n_states['gA']]
+        elif k == 'gV_nm':
+            resized_prior[k] = prior[k][:n_states['gV']]#, :n_states['gV']]
+        elif k in ['dA_PS', 'dA_SS']:
+            resized_prior[k] = prior[k][:n_states['gA']]
+        elif k in ['dV_PS', 'dV_SS']:
+            resized_prior[k] = prior[k][:n_states['gV']]
+        else:
+            resized_prior[k] = prior[k]
+
+            # for state in states:
+            #     k_n = int(k.split('_')[-1].split(')')[0])
+            #     print(k_n)
+            #     if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
+            #         resized_prior[k] = gv.gvar(prior[k].mean, prior[k].sdev)
+
+    new_prior = resized_prior.copy()
+    return x,y,n_states,new_prior
 
 
 def time_reverse(corr, reverse=True, phase=1, time_axis=1):
@@ -90,7 +102,7 @@ def load_h5(f5_file, corr_dict, return_gv=True, rw=None, bl=1, uncorr_corrs=Fals
     for corr in corr_dict:
         weights   = corr_dict[corr]['weights']
         t_reverse = corr_dict[corr]['t_reverse']
-        #d_sets = corr_dict[corr]['d_sets']
+        dsets = corr_dict[corr]['dsets']
         # check if data is in an array or single correlators
         if 'corr_array' not in corr_dict[corr]:
             corr_array = True

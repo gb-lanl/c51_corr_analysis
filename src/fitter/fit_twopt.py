@@ -42,9 +42,9 @@ def main():
                         help=            'specify bin/blocking size in terms of saved configs')
     parser.add_argument('--eff',         default=True, action='store_true',
                         help=            'plot effective mass and z_eff data? [%(default)s]')
-    parser.add_argument('--axial_eff',    default=True, action='store_true',
+    parser.add_argument('--axial_eff',    default=False, action='store_true',
                         help=            'plot effective mass of gA data? [%(default)s]')
-    parser.add_argument('--vector_eff',    default=True, action='store_true',
+    parser.add_argument('--vector_eff',    default=False, action='store_true',
                         help=            'plot effective mass of gV data? [%(default)s]')                              
     parser.add_argument('--mres',         default=False, action='store_true',
                         help=            'plot mres avg data with fit? [%(default)s]')
@@ -124,36 +124,40 @@ def main():
         states = args.states
     else:
         states = fp.fit_states
-
+    # print(gv_data)
     # print(gv_data)
     axial_fh_num_gv = {}
     vector_fh_num_gv = {}
     corr_gv = {}
-    axial_fh_num_gv['SS'] = gv_data['proton_A3_SS']
-    axial_fh_num_gv['PS'] = gv_data['proton_A3_PS']
-    vector_fh_num_gv['SS'] = gv_data['proton_V4_SS']
-    vector_fh_num_gv['PS'] = gv_data['proton_V4_PS']
+    axial_fh_num_gv['SS'] = gv_data['gA_SS']
+    axial_fh_num_gv['PS'] = gv_data['gA_PS']
+    vector_fh_num_gv['SS'] = gv_data['gV_SS']
+    vector_fh_num_gv['PS'] = gv_data['gV_PS']
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
 
     # make effective g_00 plot from fh_num / nucleon correlator    
-    # if args.axial_eff:
-    #     plot.plot_effective_g00(axial_fh_num_gv, corr_gv, 1, 14,observable='gA')
-    # if args.vector_eff:
-    #     plot.plot_effective_g00(vector_fh_num_gv, corr_gv, 1, 14,observable='gV')
+    if args.axial_eff:
+        plot.plot_effective_g00(axial_fh_num_gv, corr_gv, 1, 14,observable='gA')
+    if args.vector_eff:
+        plot.plot_effective_g00(vector_fh_num_gv, corr_gv, 1, 14,observable='gV')
 
     # plot.plot_effective_mass(corr_gv, 1, 16)
+   
     x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
-
+    print(x.keys())
+    # print(y)
+    
+    # collect.fitter(n_states, priors, t_range)
 
     
-    # if args.eff:
-    #     #plt.ion()
-    #     effective = plot.eff_plots()
-    #     effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,
-    #     gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs,x=x)
-    # # if args.mres:
-    # #     plot.plot_mres(ax, dsets, key, svdcut=args.svdcut, stability=args.stability)
+    if args.eff:
+        #plt.ion()
+        effective = plot.eff_plots()
+        effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,
+        gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs,x=x)
+    # if args.mres:
+    #     plot.plot_mres(ax, dsets, key, svdcut=args.svdcut, stability=args.stability)
 
     #set up svdcut if added
     if args.svdcut is not None:
@@ -189,6 +193,7 @@ def main():
     if args.fit:
         fit_funcs = cf.FitCorr()
         p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+        print(p0, x_fit, y_fit)
         if args.svd_test:
             data_chop = dict()
             for d in y:
@@ -207,11 +212,11 @@ def main():
                 if use_svd in ['y','Y','yes']:
                     svdcut = args.svdcut
         if has_svd:
-            fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=p0, fcn=fit_funcs.fit_function,
+            fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function,
                                        svdcut=svdcut)
         else:
             fit = lsqfit.nonlinear_fit(
-                data=(x_fit, y_fit), prior=priors, p0=p0, fcn=fit_funcs.fit_function)
+                data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function)
         if args.verbose_fit:
             print(fit.format(maxline=True))
         else:

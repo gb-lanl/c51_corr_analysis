@@ -4,7 +4,7 @@ import numpy as np
 data_file = './data/hyper_spec_axial.h5'
 
 #fit_states = ['mres-L','mres-S', 'pion', 'kaon', 'proton', 'omega']
-fit_states = ['pion','proton', 'proton_A3', 'proton_V4']
+fit_states = ['pion','proton', 'gA', 'gV']
 bs_seed = 'a09m310'
 
 corr_lst = {
@@ -53,7 +53,7 @@ corr_lst = {
         'eff_ylim' :[0.133,0.1349]
     },
     # PROTON_A3
-    'proton_A3':{
+    'gA':{
         'dsets':['a09m310/proton_A3'],
         'weights'  :[1],
         't_reverse':[False],
@@ -75,7 +75,7 @@ corr_lst = {
         'eff_ylim' :[0.133,0.1349]
     },
     # PROTON_V4
-    'proton_V4':{
+    'gV':{
         'dsets':['a09m310/proton_V4'],
         'weights'  :[1],
         't_reverse':[False],
@@ -101,20 +101,18 @@ corr_lst = {
 
 priors = gv.BufferDict()
 x      = dict()
-
+#proton priors
 priors['proton_E_0']  = gv.gvar(0.5, .06)
 priors['proton_zS_0'] = gv.gvar(2.0e-5, 1.e-5)
 priors['proton_zP_0'] = gv.gvar(2.5e-3, 1.e-3)
-
-priors['A3_00'] = gv.gvar(1.2, 0.2)
-priors['V4_00'] = gv.gvar(1.0, 0.2)
-priors['A3_11'] = gv.gvar(1.2, 0.2)
-priors['V4_11'] = gv.gvar(1.0, 0.2)
-priors['A3_01'] = gv.gvar(1.2, 0.2)
-priors['V4_01'] = gv.gvar(1.0, 0.2)
-priors['A3_02'] = gv.gvar(1.2, 0.2)
-priors['V4_02'] = gv.gvar(1.0, 0.2)
-
+#gA, gV priors
+priors['gA_nm'] = np.array([gv.gvar(1.2, 0.2), gv.gvar(0,1), gv.gvar(0,1), gv.gvar(0,1)])
+priors['gV_nm'] = np.array([gv.gvar(1.0, 0.2),gv.gvar(0,1),gv.gvar(0,1),gv.gvar(0,1)]) 
+priors['dA_PS'] = np.array([gv.gvar(-4.4e-6,4.4e-6),gv.gvar(-4.4e-6,4.4e-6),gv.gvar(-4.4e-6,4.4e-6),gv.gvar(-4.4e-6,4.4e-6)]) 
+priors['dA_SS'] = np.array([gv.gvar(-6.4e-7,6e-6),gv.gvar(-6.4e-7,6e-6),gv.gvar(-6.4e-7,6e-6),gv.gvar(-6.4e-7,6e-6)]) 
+priors['dV_PS'] = np.array([gv.gvar(6.3e-6,6.3e-6),gv.gvar(6.3e-6,6.3e-6),gv.gvar(6.3e-6,6.3e-6),gv.gvar(6.3e-6,6.3e-6)])
+priors['dV_SS'] = np.array([gv.gvar(1.2e-6,1.2e-6),gv.gvar(1.2e-6,1.2e-6),gv.gvar(1.2e-6,1.2e-6),gv.gvar(1.2e-6,1.2e-6)])
+#pion priors
 priors['pion_E_0']  = gv.gvar(0.14, .006)
 priors['pion_zS_0'] = gv.gvar(5e-3, 5e-4)
 priors['pion_zS_1'] = gv.gvar(5e-3, 5e-4)
@@ -156,6 +154,12 @@ for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
         state = corr+'_'+sp
         x[state] = dict()
         x[state]['state'] = corr
+        if corr in ['gA']:
+            x['d']    = corr_lst[corr]['dA_'+snk]
+            x['g_nm'] = 'gA_nm'
+        elif corr in ['gV']:
+            x['d']    = 'dV_'+snk 
+            x['g_nm'] = 'gV_nm'
         for k in ['type', 'T', 'n_state', 't_range', 'eff_ylim', 'ztype']:
             if k in corr_lst[corr]:
                 x[state][k] = corr_lst[corr][k]
