@@ -137,7 +137,9 @@ class eff_plots():
             - corr_lst: 
             - priors: 
         '''
-        for k in states:
+        
+        for k in ['proton','pion']:
+            
             clrs = fp.corr_lst[k]['colors']
             if 't0' in fp.corr_lst[k]:
                 t0 = fp.corr_lst[k]['t0']
@@ -149,6 +151,7 @@ class eff_plots():
                 self.ax_meff[k] = plt.axes([0.15, 0.15, 0.74, 0.84])
             else:
                 self.ax_meff[k] = plt.axes([0.15, 0.15, 0.84, 0.84])
+            
             if fp.corr_lst[k]['type'] not in ['exp_r', 'exp_r_conspire']:
                 if fp.corr_lst[k]['type'] == 'mres':
                     p = priors[k]

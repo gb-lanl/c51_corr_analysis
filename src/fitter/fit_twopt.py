@@ -126,28 +126,34 @@ def main():
         states = fp.fit_states
     # print(gv_data)
     # print(gv_data)
-    axial_fh_num_gv = {}
-    vector_fh_num_gv = {}
+    axial_num_gv = {}
+    vector_num_gv = {}
     corr_gv = {}
-    axial_fh_num_gv['SS'] = gv_data['gA_SS']
-    axial_fh_num_gv['PS'] = gv_data['gA_PS']
-    vector_fh_num_gv['SS'] = gv_data['gV_SS']
-    vector_fh_num_gv['PS'] = gv_data['gV_PS']
+    axial_num_gv['SS'] = gv_data['gA_SS']
+    axial_num_gv['PS'] = gv_data['gA_PS']
+    vector_num_gv['SS'] = gv_data['gV_SS']
+    vector_num_gv['PS'] = gv_data['gV_PS']
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
-
+    x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
+    t_range = x['gA_SS']['t_range']
+    T = len(t_range)
+    
     # make effective g_00 plot from fh_num / nucleon correlator    
     if args.axial_eff:
-        plot.plot_effective_g00(axial_fh_num_gv, corr_gv, 1, 14,observable='gA')
+        plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
     if args.vector_eff:
-        plot.plot_effective_g00(vector_fh_num_gv, corr_gv, 1, 14,observable='gV')
+        plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
 
     # plot.plot_effective_mass(corr_gv, 1, 16)
    
-    x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
-    print(x.keys())
-    # print(y)
-    
+    print(y.keys())
+    t_range = np.arange(5,48)
+    my_fit = cf.Fit(fp.corr_lst,states, y, n_states, priors, t_range,x=x,corr_gv=corr_gv, axial_num_gv=axial_num_gv,
+     vector_num_gv=vector_num_gv)
+
+    print(my_fit.make_fit())
+    # print(y)j    
     # collect.fitter(n_states, priors, t_range)
 
     
@@ -174,20 +180,7 @@ def main():
         plot.make_stability_plot(states=args.states,x=x,fp=fp,gv_data=gv_data, stability=args.stability,priors=priors, 
         scale = args.scale, svd_test=args.svd_test, data_cfg = data_cfg,n_states=n_states, 
         svd_nbs=args.svd_nbs, es_stability=args.es_stability,save_figs=args.save_figs)
-    # for k in x:
-    #     t_range = np.arange(
-    #                 x[k]['t_range'][0], x[k]['t_range'][-1]+.1, .1)
-    #     print(t_range)
-
-    #     test = collect.fitter(n_states, priors, t_range)
-    #     test.get_fit()
     
-    
-    #     fit_ensemble = fm.fit_ensemble(t_range=t_range[k],
-    #                            n_states=fp.corr_lst[corr]['n_state'], prior=priors, 
-    #                            nucleon_corr_gv=corr_gv, 
-    #                            axial_fh_num_gv=axial_fh_num_gv,
-    #                            vector_fh_num_gv=vector_fh_num_gv)
 
     # print(fit_ensemble)
     if args.fit:

@@ -1,5 +1,7 @@
 import numpy as np
 import sys
+import lsqfit 
+
 
 '''
 x['pi_SS'] = {'state':'pi'
@@ -19,8 +21,9 @@ class CorrFunction:
         e.s. energies are given as dE_n = E_n - E_{n-1}
         '''
         if x['state'] in ['gA','gV']:
-             E = p['%s_nm' % x['state']]
-             for i in range(1, n+1):
+            print(x['state'])
+            E = p['%s_nm' % x['state']]
+            for i in range(1, n+1):
                 E += p['%s_dE_%d' % (x['proton'], i)] #use wf overlap for proton
         else:
             E = p['%s_E_0' % x['state']]
@@ -30,7 +33,7 @@ class CorrFunction:
 
     def dEn(self, x, p, n):
         if x['state'] in ['gA','gV']:
-             E = p['%s_nm' % x['state']]
+             E = p[x['d']]
         else:
             E = p['%s_dE_1' % x['state']]  
             for i in range(2, n+1):
@@ -51,17 +54,9 @@ class CorrFunction:
         for n in range(x['n_state']):
             E_n = self.En(x, p, n)
             if x['ztype'] == 'z_snk z_src':
-                if 'gA' in x['state'] :
-                    x['d']    = p['dA_'+snk]
-                    x['g_nm'] = 'gA_nm'
-
-                    z_src = p["%s_z%s_%d" % (x['proton'], x['src'], n)]
-                    z_snk = p["%s_z%s_%d" % (x['proton'], x['snk'], n)]
-                    r += z_snk * z_src * np.exp(-E_n*t)
-                else:
-                    z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
-                    z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]
-                    r += z_snk * z_src * np.exp(-E_n*t)
+                z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
+                z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]
+                r += z_snk * z_src * np.exp(-E_n*t)
             elif x['ztype'] == 'A_snk,src':
                 A = p['%s_z%s%s_%d' % (x['state'], x['snk'], x['src'], n)]
                 r += A * np.exp(-E_n*t)
@@ -323,17 +318,147 @@ class FitCorr(object):
             else:
                 sys.exit('Unrecognized fit model, %s' %x[k]['type'])
         return r
+class Fit(object):
+    def __init__(self,corr_lst,states,y, nstates, prior, t_range,
+                 x=None,corr_gv=None, axial_num_gv=None, vector_num_gv=None):
+        self.corr_functions = CorrFunction()
+        self.fit_corr = FitCorr()
+        self.corr_lst = corr_lst
+        self.states = states
+        self.x = x
+        self.y = y
+        self.nstates = nstates
+        self.t_range = t_range
+        self.prior = prior
+        self.corr_gv = corr_gv
+        self.axial_num_gv = axial_num_gv
+        self.vector_num_gv = vector_num_gv
+        self.fit = None
+        self.prior = prior
 
-    def threept_fit_function(self,x,p):
+    def make_fit(self):
+        ''' 
+        create a model (which is a subclass of MultiFitter)
+        make a fitter using the models
+        make the fit with our two sets of correlators
+        '''
+
+        models = self.models_simult()
+
+        fitter = lsqfit.MultiFitter(models=models)
+        # data = self._make_data()
+        # p0,x_fit,y_fit = self.fit_corr.get_fit(priors=self.prior, states=self.states, x=self.x, y=self.y)
+        fit = fitter.lsqfit(data=self.y, prior=self.prior)
+        self.fit = fit
+        return fit
+
+    def _make_data(self):
+        data = {}
+        if self.corr_gv is not None:
+            for sink in self.corr_gv.keys():
+                data["corr_gv"][sink] = self.corr_gv[sink][self.t_range[0]:self.t_range[1]]
+
+        if self.axial_num_gv is not None:
+            for sink in self.axial_num_gv.keys():
+                data["axial_fh_num_"][sink] = self.axial_num_gv[sink][self.t_range[0]:self.t_range[1]]
+
+        if self.vector_num_gv is not None:
+            for sink in self.vector_num_gv.keys():
+                data["vector_fh_num_"][sink] = self.vector_num_gv[sink][self.t_range[0]:self.t_range[1]]
+
+        return data
+
+    def models_simult(self):
+        models = np.array([])
+        if self.corr_gv is not None:
+            for snk in self.corr_gv.keys():
+               
+
+                models = np.append(models,
+                        twopt_fit_function(datatag="proton_"+snk,
+                        t=range(self.t_range[0], self.t_range[1]),
+                        x=self.x, nstates=self.nstates))
+            
+                models = np.append(models,
+                        threept_fit_function(datatag="gA_"+snk,
+                        t=range(self.t_range[0], self.t_range[1]),
+                        x=self.x, nstates=self.nstates))
+
+                models = np.append(models,
+                        threept_fit_function(datatag="gV_"+snk,
+                        t=range(self.t_range[0], self.t_range[1]),
+                        x=self.x, nstates=self.nstates))
+        return models
+
+class twopt_fit_function(lsqfit.MultiFitterModel):
+    def __init__(self,datatag,t,x,nstates):
+        super(twopt_fit_function,self).__init__(datatag)
+        self.t = np.array(t)
+        self.nstates = nstates
+        self.x = x
+        self.corr_functions = CorrFunction()
+
+    def fitfcn(self,p):
         r = dict()
-        E = np.array([np.sum([np.exp(log_dE[j]) for j in range(n+1)]) for n in range(self.n_states)]) + E0
+        for k in x:
+            if x[k]['type'] in dir(self.corr_functions):
+                r[k] = getattr(self.corr_functions, x[k]['type'])(x[k],p)
+            # NOTE: we should move exp_r and exp_r_conspire into corr_functions
+            elif x[k]['type'] == 'exp_r':
+                sp = k.split('_')[-1]
+                r[k] = self.corr_functions.two_h_ratio(x[k], p)
+                r[k] = r[k] / \
+                    self.corr_functions.exp(x[x[k]['denom'][0]+'_'+sp], p)
+                r[k] = r[k] / \
+                    self.corr_functions.exp(x[x[k]['denom'][1]+'_'+sp], p)
+            elif x[k]['type'] == 'exp_r_conspire':
+                sp = k.split('_')[-1]
+                r[k] = self.corr_functions.two_h_conspire(x[k], p)
+                r[k] = r[k] / \
+                    self.corr_functions.exp(x[x[k]['denom'][0]+'_'+sp], p)
+                r[k] = r[k] / \
+                    self.corr_functions.exp(x[x[k]['denom'][1]+'_'+sp], p)
+            else:
+                sys.exit('Unrecognized fit model, %s' %x[k]['type'])
+        return r
 
+    def buildprior(self, prior, mopt=None, extend=False):
+        ''' 
+        Extract the model's parameters from prior.
+        '''
+        return prior
+
+    def builddata(self, data):
+        ''' 
+        Extract the model's fit data from data.
+        '''
+        return data[self.datatag]
+
+
+class threept_fit_function(lsqfit.MultiFitterModel):
+    def __init__(self,datatag,t,x,nstates):
+        super(threept_fit_function,self).__init__(datatag)
+        self.t = np.array(t)
+        self.x = x
+        self.nstates = nstates
+        
+
+    def fitfcn(self,p,t=None):
+        if t is None:
+            t = self.t
+        r = dict()
+        E0 = CorrFunction.En(x, p, 0)
+        for n in range(1,self.nstates):
+            log_dE = p['log(proton_dE_%d)' %n]
+        E = np.array([np.sum([np.exp(log_dE[j]) for j in range(n+1)]) for n in range(self.nstates)]) + E0
+        z = p[x['proton']['z']]
+        g_nm = p[x[corr]['g_nm']]
         output = 0
         for n in range(self.n_states):
             for m in range(self.n_states):
                 if n == m:
                     #if m > n: g_nm[n, m] = g_nm[m, n]
-                    output += ((t-1)*wf[n]*g_nm[n, m] + d[n]) * np.exp(-E[n] * t)
+                    output += ((t-1)*z[n]*g_nm[n, m] + d[n]) * np.exp(-E[n] * t)
                 else:
                     pass
                     E_n = E[n]
@@ -341,7 +466,19 @@ class FitCorr(object):
                     dE_nm = E_n - E_m
                     dE_mn = -dE_nm
 
-                    output += (wf[n]*g_nm[n, m]) * ((np.exp(dE_nm/2 - E_n*t) - np.exp(dE_mn/2 - E_m*t)) /
+                    output += (z[n]*g_nm[n, m]) * ((np.exp(dE_nm/2 - E_n*t) - np.exp(dE_mn/2 - E_m*t)) /
                                                     (np.exp(dE_mn/2) - np.exp(dE_nm/2)))
         return output
+
+    def buildprior(self, prior, mopt=None, extend=False):
+        ''' 
+        Extract the model's parameters from prior.
+        '''
+        return prior
+
+    def builddata(self, data):
+        ''' 
+        Extract the model's fit data from data.
+        '''
+        return data[self.datatag]
 

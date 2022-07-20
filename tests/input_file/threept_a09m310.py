@@ -64,7 +64,7 @@ corr_lst = {
         'ylim'     :[0.12,0.169],
         'colors'   :{'SS':'#70bf41','PS':'k'},
         'type'     :'exp',
-        'ztype'    :'z_snk z_src',
+        'ztype'    :'',
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
@@ -86,7 +86,7 @@ corr_lst = {
         'ylim'     :[0.12,0.169],
         'colors'   :{'SS':'#70bf41','PS':'k'},
         'type'     :'exp',
-        'ztype'    :'z_snk z_src',
+        'ztype'    :'',
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
@@ -154,12 +154,13 @@ for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
         state = corr+'_'+sp
         x[state] = dict()
         x[state]['state'] = corr
-        if corr in ['gA']:
-            x['d']    = corr_lst[corr]['dA_'+snk]
-            x['g_nm'] = 'gA_nm'
-        elif corr in ['gV']:
-            x['d']    = 'dV_'+snk 
-            x['g_nm'] = 'gV_nm'
+        x[state]['z'] = state+'_z'+snk+'_0'
+        if 'gA'+sp in state:
+            x['gA']['d']    = 'dA_'+sp
+            x['gA']['g_nm'] = 'gA_nm'        
+        elif 'gV'+sp in state:
+            x['gV']['d']    = 'dV_'+sp 
+            x['gV']['g_nm'] = 'gV_nm'
         for k in ['type', 'T', 'n_state', 't_range', 'eff_ylim', 'ztype']:
             if k in corr_lst[corr]:
                 x[state][k] = corr_lst[corr][k]
