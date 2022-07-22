@@ -29,21 +29,23 @@ def make_fit_params(fp,states,gv_data):
             if state in k:
                 if state in k and 'mres' not in k:
                     n_states[state] = x[k]['n_state']
-
+    
     resized_prior = {}
     max_n_states = np.max([n_states[key] for key in n_states.keys()])
     prior = fp.priors
-    for k in prior.keys():
-        if k == 'gA_nm':
-            resized_prior[k] = prior[k][:n_states['gA']]#, :n_states['gA']]
-        elif k == 'gV_nm':
-            resized_prior[k] = prior[k][:n_states['gV']]#, :n_states['gV']]
-        elif k in ['dA_PS', 'dA_SS']:
-            resized_prior[k] = prior[k][:n_states['gA']]
-        elif k in ['dV_PS', 'dV_SS']:
-            resized_prior[k] = prior[k][:n_states['gV']]
-        else:
-            resized_prior[k] = prior[k]
+    print(prior)
+    if state in ['gA','gV']:
+        for k in prior.keys():
+            if k == 'gA_nm':
+                resized_prior[k] = prior[k][:n_states['gA']]
+            elif k == 'gV_nm':
+                resized_prior[k] = prior[k][:n_states['gV']]
+            elif k in ['dA_PS','dA_SS']:
+                resized_prior[k] = prior[k][:n_states['gA']]
+            elif k in ['dV_PS','dV_SS']:
+                resized_prior[k] = prior[k][:n_states['gV']]
+            else:
+                resized_prior[k] = prior[k]
 
             # for state in states:
             #     k_n = int(k.split('_')[-1].split(')')[0])
@@ -52,7 +54,7 @@ def make_fit_params(fp,states,gv_data):
             #         resized_prior[k] = gv.gvar(prior[k].mean, prior[k].sdev)
 
     new_prior = resized_prior.copy()
-    return x,y,n_states,new_prior
+    return x,y,n_states,prior
 
 
 def time_reverse(corr, reverse=True, phase=1, time_axis=1):

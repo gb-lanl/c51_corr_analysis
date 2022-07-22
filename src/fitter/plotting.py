@@ -156,6 +156,7 @@ class eff_plots():
                 if fp.corr_lst[k]['type'] == 'mres':
                     p = priors[k]
                 else:
+                    print(priors)
                     p = priors[k+'_E_0']
             else:
                 d1, d2 = fp.corr_lst[k]['denom']
@@ -455,6 +456,7 @@ def make_stability_plot(states,x,fp,gv_data,stability,priors,scale,
                 svdcut = s.svdcut
                 has_svd = True
             for k in x_tmp:
+                print(k)
                 if k.split('_')[0] not in states:
                     y_tmp.pop(k)
             if ti == tmin[0]:

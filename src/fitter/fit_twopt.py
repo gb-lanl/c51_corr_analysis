@@ -136,8 +136,7 @@ def main():
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
     x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
-    t_range = x['gA_SS']['t_range']
-    T = len(t_range)
+    
     
     # make effective g_00 plot from fh_num / nucleon correlator    
     if args.axial_eff:
@@ -147,14 +146,9 @@ def main():
 
     # plot.plot_effective_mass(corr_gv, 1, 16)
    
-    print(y.keys())
-    t_range = np.arange(5,48)
-    my_fit = cf.Fit(fp.corr_lst,states, y, n_states, priors, t_range,x=x,corr_gv=corr_gv, axial_num_gv=axial_num_gv,
-     vector_num_gv=vector_num_gv)
-
-    print(my_fit.make_fit())
-    # print(y)j    
-    # collect.fitter(n_states, priors, t_range)
+    
+    # # print(y)j    
+    # # collect.fitter(n_states, priors, t_range)
 
     
     if args.eff:
@@ -180,9 +174,14 @@ def main():
         plot.make_stability_plot(states=args.states,x=x,fp=fp,gv_data=gv_data, stability=args.stability,priors=priors, 
         scale = args.scale, svd_test=args.svd_test, data_cfg = data_cfg,n_states=n_states, 
         svd_nbs=args.svd_nbs, es_stability=args.es_stability,save_figs=args.save_figs)
-    
 
-    # print(fit_ensemble)
+    # t_range = [5,20]
+    # my_fit = cf.Fit(fp.corr_lst,states, x,y, n_states, priors, t_range,corr_gv=corr_gv, axial_num_gv=axial_num_gv,
+    #  vector_num_gv=vector_num_gv)
+
+    # print(my_fit.make_fit())
+
+    # # print(fit_ensemble)
     if args.fit:
         fit_funcs = cf.FitCorr()
         p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
