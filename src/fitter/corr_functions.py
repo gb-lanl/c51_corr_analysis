@@ -19,12 +19,13 @@ class CorrFunction:
         g.s. energy is energy
         e.s. energies are given as dE_n = E_n - E_{n-1}
         '''
+        E= 0
         if x['state'] in ['gA','gV']:
-            E = p['%s_E_0' % x['state']]
+            E += p['%s_00' % x['state']]
             for i in range(1, n+1):
                 E += p['%s_dE_%d' % ('proton', i)] #use wf overlap for proton
         elif x['state'] in 'proton':
-            E = p['%s_E_0' % x['state']]
+            E += p['%s_E_0' % x['state']]
             for i in range(1, n+1):
                 E += p['%s_dE_%d' % (x['state'], i)]
         return E
@@ -40,6 +41,29 @@ class CorrFunction:
         for i in range(2, n+1):
             E += p['%s_E_el_%d' % (x['state'], i)]
         return E
+    
+    # def threept(self,x,p,n,tsep_gA,tsep_gV,tau_gA,tau_gV):
+    #    t = x['t_range']
+    #    for n in range(x['n_state']):
+    #     E_n = self.En(x, p, n)
+
+    #     r = {}
+
+    #     r['pt3_gA'] = p['gA_00']*(self.exp(x,p)*tsep_gA) 
+    #     r['pt3_gV'] = p['gV_00']*(self.exp(x,p)*tsep_gV) 
+
+    #     for i in range(n):    
+    #         for j in range(n):
+    #             if i+j >= 1:
+    #                 if j == i:
+    #                     r['pt3_gA'] += p['gA_'+str(j)+str(i)]*(self.exp(x,p)*tsep_gA)
+    #                     r['pt3_gV'] += p['gV_'+str(j)+str(i)]*(self.exp(x,p)*tsep_gV)
+    #                 else:
+    #                     mi = np.minimum(j, i)
+    #                     ma = np.maximum(j, i)
+    #                     r['pt3_gA'] += p['gA_'+str(mi)+str(ma)]*(self.exp(x,p)*tsep_gA)*(self.exp(x,p)*tau_gA)
+    #                     r['pt3_gV'] += p['gV_'+str(mi)+str(ma)]*(self.exp(x,p)*tsep_gV)*(self.exp(x,p)*tau_gV)
+    #     return r
 
     def exp(self, x, p):
         #print('DEBUG:',x)
@@ -49,13 +73,39 @@ class CorrFunction:
         for n in range(x['n_state']):
             E_n = self.En(x, p, n)
             if x['ztype'] == 'z_snk z_src':
-                z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
-                z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]
-                r += z_snk * z_src * np.exp(-E_n*t)
+                if x['state'] == 'proton':
+                    z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
+                    z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]
+                    r += z_snk * z_src * np.exp(-E_n*t)
+                elif x['state'] in ['gA','gV']:
+                    z_src = p["%s_z%s_%d" % ('proton', x['src'], n)]
+                    z_snk = p["%s_z%s_%d" % ('proton', x['snk'], n)]
+                    r += z_snk * z_src * np.exp(-E_n*t)
+
             elif x['ztype'] == 'A_snk,src':
                 A = p['%s_z%s%s_%d' % (x['state'], x['snk'], x['src'], n)]
                 r += A * np.exp(-E_n*t)
         return r
+
+    def exp_3pt(self, x, p):
+        #print('DEBUG:',x)
+        #sys.exit()
+        r = {}
+        r['pt3_gA'] = p['gA_00']*(self.exp(x,p)) 
+        r['pt3_gV'] = p['gV_00']*(self.exp(x,p)) 
+        # t = x['t_range']
+        for j in range(x['n_state']):
+            for i in range(x['n_state']):
+                if j ==i:
+                    r['pt3_gA'] += p['gA_'+str(j)+str(i)]*(self.exp(x,p))
+                    r['pt3_gV'] += p['gV_'+str(j)+str(i)]*(self.exp(x,p))
+                else:
+                    mi = np.minimum(j, i)
+                    ma = np.maximum(j, i)
+                    r['pt3_gA'] += p['gA_'+str(mi)+str(ma)]*(self.exp(x,p))*(self.exp(x,p))
+                    r['pt3_gV'] += p['gV_'+str(mi)+str(ma)]*(self.exp(x,p))*(self.exp(x,p))
+        # print(r['pt3_gA'])
+        return r['pt3_gA'] 
 
     def exp_open(self, x, p):
         ''' first add exp tower '''
@@ -313,14 +363,18 @@ class FitCorr(object):
             else:
                 sys.exit('Unrecognized fit model, %s' %x[k]['type'])
         return r
-class Fit(object):
-    def __init__(self,corr_lst,states,x,y, nstates, prior, t_range=None,
+
+    
+class Simult_Fit(object):
+    def __init__(self,states,x,y, nstates, prior, t_range=None, 
                  corr_gv=None, axial_num_gv=None, vector_num_gv=None):
         self.corr_functions = CorrFunction()
         self.fit_corr = FitCorr()
-        self.corr_lst = corr_lst
         self.states = states
+        self.x = x
         self.y = y
+        # self.x_fit = x_fit
+        # self.y_fit = y_fit
         self.nstates = nstates
         self.t_range = [5,20]
         self.prior = prior
@@ -329,6 +383,12 @@ class Fit(object):
         self.vector_num_gv = vector_num_gv
         self.fit = None
         self.prior = prior
+
+    def get_fit(self):
+        if self.fit is not None:
+            return self.fit
+        else:
+            return self.make_fit()
 
     def make_fit(self):
         ''' 
@@ -340,9 +400,9 @@ class Fit(object):
         models = self.models_simult()
 
         fitter = lsqfit.MultiFitter(models=models)
-        data = self._make_data()
+        # data = self._make_data()
         # p0,x_fit,y_fit = self.fit_corr.get_fit(priors=self.prior, states=self.states, x=self.x, y=self.y)
-        fit = fitter.lsqfit(data=data, prior=self.prior)
+        fit = fitter.lsqfit(data=(self.x,self.y), prior=self.prior)
         self.fit = fit
         return fit
 
@@ -374,8 +434,8 @@ class Fit(object):
 
                     }
                     models = np.append(models,
-                            twopt_fit_function(datatag="nucleon_"+snk,
-                            t=range(self.t_range[0], self.t_range[1]),
+                            Two_pt(datatag="nucleon_"+snk,
+                            x=self.x,
                             fit_params=fit_params, nstates=self.nstates))
         if self.axial_num_gv is not None:
             for snk in self.axial_num_gv.keys():
@@ -386,11 +446,10 @@ class Fit(object):
                         'd'        : 'dA_'+snk,
                         'g_nm'  : 'gA_nm',
                         'z'       : 'proton_z'+snk+'_0',
-
                     }
                     models = np.append(models,
-                            threept_fit_function(datatag="axial_num_"+snk,
-                            t=range(self.t_range[0], self.t_range[1]),
+                            Three_pt(datatag="axial_num_"+snk,
+                            x=self.x,
                         fit_params=fit_params, nstates=self.nstates))
         if self.vector_num_gv is not None:
             for snk in self.vector_num_gv.keys():
@@ -404,33 +463,21 @@ class Fit(object):
 
                     }
                     models = np.append(models,
-                            threept_fit_function(datatag="vector_num_"+snk,
-                            t=range(self.t_range[0], self.t_range[1]),
+                            Three_pt(datatag="vector_num_"+snk,
+                            x=self.x,
                             fit_params=fit_params, nstates=self.nstates))
         return models
 
-class twopt_fit_function(lsqfit.MultiFitterModel):
-    def __init__(self,datatag,t,fit_params,nstates):
-        super(twopt_fit_function,self).__init__(datatag)
-        self.t = np.array(t)
+class Two_pt(lsqfit.MultiFitterModel):
+    def __init__(self,datatag,x,fit_params,nstates):
+        super(Two_pt,self).__init__(datatag)
+        self.x = np.array(x)
         self.nstates = nstates
         self.fit_params = fit_params
         self.corr_functions = CorrFunction()
 
     def fitfcn(self,p,t=None):
-        if t is None:
-            t = self.t
-        z = p[self.fit_params['z']]
-        E0 = p[self.fit_params['E0']]
-        # E0 = CorrFunction.En(x, p, 0)
-        log_dE = p[self.fit_params['log(dE)']]
-
-        output = z * np.exp(-E0 * t)
-        es = E0 + np.sum(np.exp(log_dE))
-        output = output + z * np.exp(-es * t)
-        # for j in range(1, self.nstates['gA']):
-        #     es = E0 + np.sum([np.exp(log_dE) for k in range(j)], axis=0)
-            # output = output + z[j] * np.exp(-es * t)
+        output = self.corr_functions.exp(x=self.x, p=p)
         return output
     def buildprior(self, prior, mopt=None, extend=False):
         ''' 
@@ -445,47 +492,16 @@ class twopt_fit_function(lsqfit.MultiFitterModel):
         return data[self.datatag]
 
 
-class threept_fit_function(lsqfit.MultiFitterModel):
-    def __init__(self,datatag,t,fit_params,nstates):
-        super(threept_fit_function,self).__init__(datatag)
-        self.t = np.array(t)
+class Three_pt(lsqfit.MultiFitterModel):
+    def __init__(self,datatag,x,fit_params,nstates):
+        super(tThree_pt,self).__init__(datatag)
+        self.x = np.array(x)
         self.fit_params = fit_params
         self.nstates = nstates
         
 
     def fitfcn(self,p,t=None):
-        if t is None:
-            t = self.t
-        # r = dict()
-        # E0 = CorrFunction.En(x, p, 0)
-        # for n in range(1,self.nstates):
-        #     log_dE = p['log(dE)' %n]
-       
-       
-        g_nm = p[self.fit_params['g_nm']]
-        z = p[self.fit_params['z']]
-        E0 = p[self.fit_params['E0']]
-        d= p[self.fit_params['d']]
-        # E0 = CorrFunction.En(x, p, 0)
-        log_dE = np.append(-np.inf,p[self.fit_params['log(dE)']])
-        print(log_dE)
-        E = np.array([np.sum([np.exp(log_dE[j]) for j in range(n+1)]) for n in range(self.nstates['gA'])]) + E0
-        # E = np.exp(log_dE) + E0
-        output = 0
-        for n in range(self.nstates['gA']):
-            for m in range(self.nstates['gA']):
-                if n == m:
-                    #if m > n: g_nm[n, m] = g_nm[m, n]
-                    output += ((t-1)*z[n]*g_nm[n, m] + d[n]) * np.exp(-E[n] * t)
-                else:
-                    pass
-                    E_n = E[n]
-                    E_m = E[m]
-                    dE_nm = E_n - E_m
-                    dE_mn = -dE_nm
-
-                    output += (z[n]*g_nm[n, m]) * ((np.exp(dE_nm/2 - E_n*t) - np.exp(dE_mn/2 - E_m*t)) /
-                                                    (np.exp(dE_mn/2) - np.exp(dE_nm/2)))
+        output = self.corr_functions.exp_3pt(x=self.x, p=p)
         return output
 
     def buildprior(self, prior, mopt=None, extend=False):

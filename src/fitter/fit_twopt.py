@@ -2,7 +2,6 @@ import fitter.plotting as plot
 import fitter.corr_functions as cf
 import fitter.load_data as ld
 import fitter.bootstrap as bootstrap
-import fitter.three_pt_manage as fm
 import fitter.fit_collect as collect
 import pandas as pd
 import lsqfit
@@ -32,6 +31,8 @@ def main():
     parser.add_argument('fit_params',    help='input file to specify fit')
     parser.add_argument('--fit',         default=True, action='store_true',
                         help=            'do fit? [%(default)s]')
+    parser.add_argument('--simult_fit',  default=True, action='store_true',
+                        help=            'do simult fit to 3pt and 2pt data? [%(default)s]')
     parser.add_argument('--svdcut',      type=float, help='add svdcut to fit')
     parser.add_argument('--svd_test',    default=True, action='store_false',
                         help=            'perform gvar svd_diagnosis? [%(default)s]')
@@ -135,6 +136,7 @@ def main():
     vector_num_gv['PS'] = gv_data['gV_PS']
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
+
     x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     
     
@@ -175,44 +177,67 @@ def main():
         scale = args.scale, svd_test=args.svd_test, data_cfg = data_cfg,n_states=n_states, 
         svd_nbs=args.svd_nbs, es_stability=args.es_stability,save_figs=args.save_figs)
 
+    # if args.fit:
+    #     fit_funcs = cf.FitCorr()
+    #     p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+    #     print(p0, x_fit, y_fit)
+    #     if args.svd_test:
+    #         data_chop = dict()
+    #         for d in y:
+    #             if d in x_fit:
+    #                 if d in x_fit and 'mres' not in d:
+    #                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
+    #                 if 'mres' in d and len(d.split('_')) > 1:
+    #                     data_chop[d] = data_cfg[d][:,x_fit[d.split('_')[0]]['t_range']]
+    #         svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
+    #         svdcut = svd_test.svdcut
+    #         has_svd = True
+    #         if args.svdcut is not None:
+    #             print('    s.svdcut = %.2e' %svd_test.svdcut)
+    #             print(' args.svdcut = %.2e' %args.svdcut)
+    #             use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
+    #             if use_svd in ['y','Y','yes']:
+    #                 svdcut = args.svdcut
+    #     if has_svd:
+    #         fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function,
+    #                                    svdcut=svdcut)
+    #     else:
+    #         fit = lsqfit.nonlinear_fit(
+    #             data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function)
+    #     if args.verbose_fit:
+    #         print(fit.format(maxline=True))
+    #     else:
+    #         print(fit)
     # t_range = [5,20]
-    # my_fit = cf.Fit(fp.corr_lst,states, x,y, n_states, priors, t_range,corr_gv=corr_gv, axial_num_gv=axial_num_gv,
-    #  vector_num_gv=vector_num_gv)
-
-    # print(my_fit.make_fit())
-
-    # # print(fit_ensemble)
-    if args.fit:
-        fit_funcs = cf.FitCorr()
-        p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
-        print(p0, x_fit, y_fit)
-        if args.svd_test:
-            data_chop = dict()
-            for d in y:
-                if d in x_fit:
-                    if d in x_fit and 'mres' not in d:
-                        data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
-                    if 'mres' in d and len(d.split('_')) > 1:
-                        data_chop[d] = data_cfg[d][:,x_fit[d.split('_')[0]]['t_range']]
-            svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
-            svdcut = svd_test.svdcut
-            has_svd = True
-            if args.svdcut is not None:
-                print('    s.svdcut = %.2e' %svd_test.svdcut)
-                print(' args.svdcut = %.2e' %args.svdcut)
-                use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
-                if use_svd in ['y','Y','yes']:
-                    svdcut = args.svdcut
-        if has_svd:
-            fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function,
-                                       svdcut=svdcut)
-        else:
-            fit = lsqfit.nonlinear_fit(
+    fit_funcs = cf.FitCorr()
+    p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+    # print(x_fit)
+    fit = lsqfit.nonlinear_fit(
                 data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function)
-        if args.verbose_fit:
-            print(fit.format(maxline=True))
-        else:
-            print(fit)
+   
+    print(fit)
+    # if args.simult_fit:
+
+    #     my_fit = cf.Simult_Fit(states, x_fit, y_fit, n_states, priors)
+    #     my_fit.get_fit()
+        #  my_fit = collect.fit_ensemble(t_range=t_range,states=states,x=x,y=y,
+        #                        n_states=n_states, prior=priors, 
+        #                        corr_gv=corr_gv, 
+        #                        axial_num_gv=axial_num_gv,
+        #                        vector_num_gv=vector_num_gv)
+        #  print(my_fit.get_fit())
+    # if args.make_plots:
+    #     plots = collect.make_plots()
+    #     output_pdf = PdfPages(os.path.normpath("../tmp/temp.pdf"))
+    #     for plot in plots:
+    #         if plot is not None:
+    #             output_pdf.savefig(plot)
+    #     if p_dict['show_many_states']:
+    #         output_pdf.savefig(fit_ensemble.plot_stability(model_type='corr', n_states_array=[1, 2, 3, 4]))
+    #         output_pdf.savefig(fit_ensemble.plot_stability(model_type='gA', n_states_array=[1, 2, 3, 4]))
+    #         output_pdf.savefig(fit_ensemble.plot_stability(model_type='gV', n_states_array=[1, 2, 3, 4]))
+    #     output_pdf.close()
+
 
     #     if args.gui:
     #         from lsqfitgui import run_server
