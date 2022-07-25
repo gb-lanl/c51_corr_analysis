@@ -139,7 +139,6 @@ def main():
 
     x,y,n_states,priors= ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     
-    
     # make effective g_00 plot from fh_num / nucleon correlator    
     if args.axial_eff:
         plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
@@ -147,17 +146,15 @@ def main():
         plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
 
     # plot.plot_effective_mass(corr_gv, 1, 16)
-   
-    
-    # # print(y)j    
-    # # collect.fitter(n_states, priors, t_range)
-
     
     if args.eff:
         #plt.ion()
         effective = plot.eff_plots()
         effective.make_eff_plots(states=states,fp=fp,x_fit=None,priors=priors,
         gv_data=gv_data,fit=None, scale=args.scale,show_fit=False,save_figs=args.save_figs,x=x)
+        
+
+
     # if args.mres:
     #     plot.plot_mres(ax, dsets, key, svdcut=args.svdcut, stability=args.stability)
 
@@ -177,49 +174,51 @@ def main():
         scale = args.scale, svd_test=args.svd_test, data_cfg = data_cfg,n_states=n_states, 
         svd_nbs=args.svd_nbs, es_stability=args.es_stability,save_figs=args.save_figs)
 
-    # if args.fit:
-    #     fit_funcs = cf.FitCorr()
-    #     p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
-    #     print(p0, x_fit, y_fit)
-    #     if args.svd_test:
-    #         data_chop = dict()
-    #         for d in y:
-    #             if d in x_fit:
-    #                 if d in x_fit and 'mres' not in d:
-    #                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
-    #                 if 'mres' in d and len(d.split('_')) > 1:
-    #                     data_chop[d] = data_cfg[d][:,x_fit[d.split('_')[0]]['t_range']]
-    #         svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
-    #         svdcut = svd_test.svdcut
-    #         has_svd = True
-    #         if args.svdcut is not None:
-    #             print('    s.svdcut = %.2e' %svd_test.svdcut)
-    #             print(' args.svdcut = %.2e' %args.svdcut)
-    #             use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
-    #             if use_svd in ['y','Y','yes']:
-    #                 svdcut = args.svdcut
-    #     if has_svd:
-    #         fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function,
-    #                                    svdcut=svdcut)
-    #     else:
-    #         fit = lsqfit.nonlinear_fit(
-    #             data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function)
-    #     if args.verbose_fit:
-    #         print(fit.format(maxline=True))
-    #     else:
-    #         print(fit)
-    # t_range = [5,20]
-    fit_funcs = cf.FitCorr()
-    p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
-    # print(x_fit)
-    fit = lsqfit.nonlinear_fit(
+    if args.fit:
+        fit_funcs = cf.FitCorr()
+        p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+        print(p0, x_fit, y_fit)
+        if args.svd_test:    #         data_chop = dict(
+            for d in y:
+                if d in x_fit:
+                    if d in x_fit and 'mres' not in d:
+                        data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
+                    if 'mres' in d and len(d.split('_')) > 1:
+                        data_chop[d] = data_cfg[d][:,x_fit[d.split('_')[0]]['t_range']]
+            svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
+            svdcut = svd_test.svdcut
+            has_svd = True
+            if args.svdcut is not None:
+                print('    s.svdcut = %.2e' %svd_test.svdcut)
+                print(' args.svdcut = %.2e' %args.svdcut)
+                use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
+                if use_svd in ['y','Y','yes']:
+                    svdcut = args.svdcut
+        if has_svd:
+            fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function,
+                                       svdcut=svdcut)
+        else:
+            fit = lsqfit.nonlinear_fit(
                 data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function)
+        if args.verbose_fit:
+            print(fit.format(maxline=True))
+        else:
+            print(fit)
+    # t_range = [5,20]
+    # print(x['gA'])
+    fit_funcs = cf.FitCorr()
+    fiut_lst,p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+    print(x_fit)
+    # for state in states:
+    #     print(x_fit.keys())
+    # # print(x_fit)
+    # fit = lsqfit.nonlinear_fit(
+    #             data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function)
    
-    print(fit)
-    # if args.simult_fit:
 
-    #     my_fit = cf.Simult_Fit(states, x_fit, y_fit, n_states, priors)
-    #     my_fit.get_fit()
+        # my_fit = cf.Simult_Fit(states,n_states, priors,t_range=p_dict['t_range'],corr_gv=corr_gv,axial_num_gv=axial_num_gv,
+        # vector_num_gv=vector_num_gv)
+        # print(my_fit.make_fit())
         #  my_fit = collect.fit_ensemble(t_range=t_range,states=states,x=x,y=y,
         #                        n_states=n_states, prior=priors, 
         #                        corr_gv=corr_gv, 
@@ -237,7 +236,6 @@ def main():
     #         output_pdf.savefig(fit_ensemble.plot_stability(model_type='gA', n_states_array=[1, 2, 3, 4]))
     #         output_pdf.savefig(fit_ensemble.plot_stability(model_type='gV', n_states_array=[1, 2, 3, 4]))
     #     output_pdf.close()
-
 
     #     if args.gui:
     #         from lsqfitgui import run_server
@@ -266,7 +264,6 @@ def main():
     #         svd_test.plot_ratio(show=True)
     # if args.interact:
     #     import IPython; IPython.embed()
-
     plt.ioff()
     plt.show()
 

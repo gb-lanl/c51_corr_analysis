@@ -33,7 +33,7 @@ def make_fit_params(fp,states,gv_data):
     resized_prior = {}
     max_n_states = np.max([n_states[key] for key in n_states.keys()])
     prior = fp.priors
-    print(prior)
+    # print(prior)
     if state in ['gA','gV']:
         for k in prior.keys():
             if k == 'gA_nm':

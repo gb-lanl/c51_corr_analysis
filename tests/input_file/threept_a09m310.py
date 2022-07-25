@@ -46,7 +46,7 @@ corr_lst = {
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
-        'T'        :96,
+        't_sink'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -70,8 +70,8 @@ corr_lst = {
         'tau'       : 5,
         'tsep'     : 8,
         'n_state'  :3,
-        'T'        :96,
-        't_range'  :np.arange(5,40),
+        't_sink'        :96,
+        't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
         'eff_ylim' :[0.133,0.1349]
@@ -94,8 +94,8 @@ corr_lst = {
         'tau'       : 5,
         'tsep'     : 8,  
         'n_state'  :3,
-        'T'        :96,
-        't_range'  :np.arange(5,20),
+        't_sink'        :96,
+        't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
         'eff_ylim' :[0.133,0.1349]
@@ -118,11 +118,11 @@ priors['pion_zP_0'] = gv.gvar(0.125,  0.015)
 priors['pion_zP_1'] = gv.gvar(0.125,  0.015)
 
 #gA, gV priors
-
+#physical values
 priors['gA_00'] = gv.gvar(1.2, 0.2)
 priors['gV_00'] = gv.gvar(1.0, 0.2)
 
-
+# set gA_nm, gV_nm priors 
 for i in range(5):
     for j in range(5):
         if i+j >= 1:
@@ -132,6 +132,7 @@ for i in range(5):
             elif j == i:
                 priors['gA_'+str(j)+str(i)] = gv.gvar(0, 1)
                 priors['gV_'+str(j)+str(i)] = gv.gvar(1, 0.2)
+
 
 
 for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
@@ -160,14 +161,12 @@ for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
         x[state]['z'] = corr+'_z'+snk+'_0'
         if corr == 'gA':
             x[state]['tsep']    = corr_lst[corr]['tsep']
-            x[state]['tau']    = corr_lst[corr]['tau']
             x[state]['g_nm'] = 'gA_nm'        
         elif x[state]['state'] == 'gV':
             x[state]['tsep']    = corr_lst[corr]['tsep']
-            x[state]['tau']    = corr_lst[corr]['tau']
             x[state]['d']    = 'dV_'+sp 
             x[state]['g_nm'] = 'gV_nm'
-        for k in ['type', 'T', 'n_state', 't_range', 'eff_ylim', 'ztype']:
+        for k in ['type', 't_sink', 'n_state', 't_range', 'eff_ylim', 'ztype']:
             if k in corr_lst[corr]:
                 x[state][k] = corr_lst[corr][k]
         if 't0' in corr_lst[corr]:
