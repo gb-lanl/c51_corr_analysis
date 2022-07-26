@@ -165,7 +165,7 @@ def plot_effective_g00(fh_num_gv, corr_gv,
     else: plt.close()
 
     return fig
-def plot_effective_mass(correlators_gv, t_plot_min = None, t_plot_max = 15,show_plot=True,):
+def plot_effective_mass(correlators_gv,fit, t_plot_min = None, t_plot_max = 15,show_plot=True,show_fit=None):
     if t_plot_min == None: t_plot_min = 0
     if t_plot_max == None: t_plot_max = correlators_gv[correlators_gv.keys()[0]].shape[0] - 1
 
@@ -180,20 +180,20 @@ def plot_effective_mass(correlators_gv, t_plot_min = None, t_plot_max = 15,show_
         
         tp = t + 0.1 - j*0.2
         plt.errorbar(tp, y, xerr = 0.0, yerr=y_err, fmt='o', capsize=5.0,capthick=2.0, alpha=0.6, elinewidth=5.0, label=key)
-    # if show_fit:
-    #         t = np.linspace(t_plot_min-2, t_plot_max+2)
-    #         dt = (t[-1] - t[0])/(len(t) - 1)
-    #         fit_data_gv = self._generate_data_from_fit(model_type="corr", t=t)
+    if show_fit:
+            t = np.linspace(t_plot_min-2, t_plot_max+2)
+            dt = (t[-1] - t[0])/(len(t) - 1)
+            fit_data_gv = fit #self._generate_data_from_fit(model_type="corr", t=t)
 
-    #         for j, key in enumerate(fit_data_gv.keys()):
-    #             eff_mass_fit = self.get_nucleon_effective_mass(fit_data_gv, dt)[key][1:-1]
+            for j, key in enumerate(fit_data_gv.keys()):
+                eff_mass_fit = self.get_nucleon_effective_mass(fit_data_gv, dt)[key][1:-1]
 
-    #             pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-    #             plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j%len(colors)])
-    #             plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
-    #             plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
-    #                              facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-    #         plt.title("Best fit for $N_{states} = $%s" %(self.n_states['corr']), fontsize = 24)
+                pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
+                plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j%len(colors)])
+                plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
+                plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
+                                 facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
+            plt.title("Best fit for $N_{states} = $%s" %(self.n_states['corr']), fontsize = 24)
 
 
     # Label dirac/smeared data

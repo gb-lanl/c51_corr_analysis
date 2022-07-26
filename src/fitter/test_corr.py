@@ -7,6 +7,7 @@ import argparse
 import importlib
 import corrfitter
 import collections
+import numpy as np
 
 import fitter.corr_functions as cf 
 import fitter.load_data as ld
@@ -70,32 +71,60 @@ def main():
 
     x,y,n_states,priors  = ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     fit_funcs = cf.FitCorr()
+
     fit_lst, p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
-    print(x)
-    # jprint(x)
+    if x_fit.keys() != y_fit.keys():
+        raise ValueError("keys: fit_states should be shared in both fit dicts")
+    axial_num_gv = {}
+    vector_num_gv = {}
+    corr_gv = {}
+    axial_num_gv['SS'] = gv_data['gA_SS']
+    axial_num_gv['PS'] = gv_data['gA_PS']
+    vector_num_gv['SS'] = gv_data['gV_SS']
+    vector_num_gv['PS'] = gv_data['gV_PS']
+    corr_gv['SS'] = gv_data['proton_SS']
+    corr_gv['PS'] = gv_data['proton_PS']
+    plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
+    plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
+   
+    mass = prelim.FastFit(gv_data['proton_PS'])
+    print(mass)
     # y = {}
 
-    # for t_snk in x['pion_SS']['t_sink']:
-    #         try:
-    #             int(t_snk)
-    #         except ValueError:
-    #             raise ValueError(f"Invalid sink time T. Found T={t_snk}")
+    
+    
+    # c_t = gv_data['proton_SS'][0::1][:-1]
+    # c_tpdt = gv_data['proton_SS'][0::1][1:]
+    # print(np.array((1/2)*np.log(c_t/c_tpdt)))
+    # # cf.effective_mass_local(gv_data)
+    # # ds = {key: val for key, val in gv_data.items()}
+    # cosh_m = (data[2:] + data[:-2]) / (2.0 * data[1:-1])
+    # meff = np.zeros(len(cosh_m), dtype=gv._gvarcore.GVar)
+    # # The domain of arccosh is [1, Infinity).
+    # # Set entries outside of the domain to nans.
+    # domain = (cosh_m > 1)
+    # meff[domain] = np.arccosh(cosh_m[domain])
+    # meff[~domain] = gv.gvar(np.nan)
+    # print(meff)
+    # ydict = {tag: val for tag, val in gv_data.items() if isinstance(tag, int)}
+    # print(ydict)
 
     # y[t_snk] = np.ones(len(t), dtype=object)
     # denom_src = np.ones(len(t), dtype=object)
     # denom_snk = np.ones(len(t), dtype=object)
-    
     # print(corr_gv)
-    tag = 'pion_SS'
-    tag_ = 'pion_PS'
+    tag = 'proton_SS'
+    tag_ = 'proton_PS'
     tag_3pt = {'gA_SS','gA_PS'}
     # print(data[tag].shape)
     
-    test_NPoint(tag,gv_data)
-    test_NPoint_snk(tag_,gv_data)
-    # test_NPoint_3pt(tag_3pt,x)
-
-    compute_yfit(gv_data, x_fit)
+    fit_out = test_NPoint(tag,gv_data,prior=priors)
+    print(fit_out)
+    fit_ = test_NPoint_snk(tag_,gv_data,prior=priors)
+    print(fit_)
+    # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=True)
+    test_NPoint_3pt('gA_SS',gv_data)
+    # test_BaseTimes()
    
 def test_main():
     """Test the main function."""
@@ -122,23 +151,24 @@ def test_BaseTimes():
     with pytest.raises(ValueError):
         times = cf.TimeContainer(tdata, tmax=len(tdata)+1)
 
-def test_NPoint(tag,data):
+def test_NPoint(tag,data,prior):
     """Test cf.C_2pt and cf.C_3pt class."""
     # print(data[tag].shape)
     nt = data[tag].shape
-    print(nt)
     # print(corr)
     data_ = data.pop(tag)
     c2_src = cf.C_2pt(tag, data_)
-    print(len(c2_src.meff(avg=True)))
-    print(get_two_point_model(c2_src))
+    # print(len(c2_src.meff(avg=True)))
+    model =get_two_point_model(c2_src)
+    # t_start = c2_src.times.tmin 
+    # t_end = c2_src.times.tmax
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
-    prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
-    fitter = TwoPointAnalysis(c2_src)
+    # prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
+    fitter = C_2pt_Analysis(c2_src,prior)
+    # fit = fitter.run_fit()
+
     fit = fitter.run_fit()
-    print(fit)
-    # fit = fitter.run_fit(nstates, prior=prior)
 
 
     assert len(c2_src) == nt[0],\
@@ -156,18 +186,16 @@ def test_NPoint(tag,data):
     # # Figures
     _ = plot.plot_correlators(data,t_plot_max=20)
     _ = plot.plot_effective_mass(data, 1, 16)
-    _ = c2_src.plot_corr(avg=False)
-    _ = c2_src.plot_meff(avg=False)
-    _ = c2_src.plot_meff(avg=True)
+    # _ = c2_src.plot_corr(avg=False)
+    # _ = c2_src.plot_meff(avg=False)
+    # _ = c2_src.plot_meff(avg=True)
+    return fit
 
-
-def test_NPoint_snk(tag,data):
+def test_NPoint_snk(tag,data,prior):
     # tag = 'PS'
     nt = data[tag].shape
     data_ = data.pop(tag)
-    c2_snk = cf.C_2pt(tag, data_)
-    # print(c2_snk.avg())
-
+    c2_snk = cf.C_2pt(tag, data_,skip_fastfit=False)
     print(c2_snk)
     assert len(c2_snk) == nt[0],\
         "Unexpected len(c2_snk)"
@@ -176,22 +204,21 @@ def test_NPoint_snk(tag,data):
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
     # n=nstates.n, no=nstates.no
-    prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
+    # prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
     
     # Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     # nstates = Nstates(n=1, no=0)
-    fitter = TwoPointAnalysis(c2_snk)
+    fitter = C_2pt_Analysis(c2_snk,prior)
     fit = fitter.run_fit()
     print(fit)
 
-    _ = plot.plot_correlators(data,t_plot_max=20)
-    _ = plot.plot_effective_mass(data, 1, 16)
+    # _ = plot.plot_correlators(data,t_plot_max=20)
+    # _ = plot.plot_effective_mass(data, 1, 16)
 
 def test_NPoint_3pt(tag,data):
     # nt = data[tag].shape
     # print(nt)
     ds = {key: val for key, val in data.items()}
-    
     c3 = cf.C_3pt(tag, ds)
     print(c3)
     # avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
@@ -202,8 +229,6 @@ def test_NPoint_3pt(tag,data):
     fitter = ThreePointAnalysis(c3)
     fit = fitter.run_sequential_fits(nstates)
     print(fit)
-
-
 
 def get_two_point_model(two_point, osc=True):
     tag = two_point.tag
@@ -339,19 +364,16 @@ def compute_yfit(ds, params):
         yfit[tag] = model.fitfcn(t=tdata, p=params)
     return yfit
 
-
-
-class TwoPointAnalysis(object):
+class C_2pt_Analysis(object):
     """
     A basic fitter class for two-point correlation functions.
     Args:
-        c2: TwoPoint object
+        c2: C_2pt object
     """
-
-    def __init__(self, c2):
+    def __init__(self, c2,prior):
         self.tag = c2.tag
         self.c2 = c2
-        self.prior = None 
+        self.prior = prior 
         self.fitter = None
         self._nstates = None
         self._fit = None
@@ -363,7 +385,7 @@ class TwoPointAnalysis(object):
             nstates: tuple (n_decay, n_osc) specifying the number of decaying
                 and oscillating states, respectively. Defaults to (1,0).
             prior: BasicPrior object. Default is None, for which the fitter
-                tries to constuct a prior itself.
+                tries to constuct a prior itself. TODO 
         """
         self._nstates = nstates
         if prior is None:
@@ -380,11 +402,13 @@ class TwoPointAnalysis(object):
         fit = self.fitter.lsqfit(data=data, prior=prior, p0=prior.p0, **fitter_kwargs)
         # fit = serialize.SerializableNonlinearFit(fit)
         self._fit = fit
+        fit.show_plots()
+
         # if fit.failed:
         #     fit = None
         return fit
 
-class ThreePointAnalysis(object):
+class C_3pt_Analysis(object):
     '''
     Extract form factors from simult. fits to 2pt, 3pt fcns  
     '''
@@ -404,7 +428,7 @@ class ThreePointAnalysis(object):
             **fitter_kwargs):
         """
         Runs sequential fits.
-        First runs two-point functions, The runs the simult fit.
+        First runs two-point functions, Then runs the simult fit.
         """
         if prior is None:
             self.prior = priors.FormFactorPrior(

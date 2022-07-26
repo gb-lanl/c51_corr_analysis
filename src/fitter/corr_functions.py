@@ -30,6 +30,25 @@ def _infer_tmax(ydata, noise_threshy):
         tmax = np.argmin(good)
     return tmax
 
+def effective_mass_local(data, ti=0, dt=1):
+    """
+    Computes a "local" effective mass.
+    Args:
+        data: array or list, correlator data C(t)
+        ti: int, the starting timeslice. Default is 0.
+        dt: int, the step between timeslices. Default is 1.
+    Returns:
+        array, the effective mass
+   
+    >>> c2 = get_some_correlator_data(...)
+    >>> meff = effective_mass_local(c2)  # The usual local version
+    >>> meff_even = effective_mass_local(c2, ti=0, dt=2)  # Even timeslices only
+    >>> meff_odd = effective_mass_local(c2, ti=1, dt=2)  # Odd timeslices only
+    """
+    c_t = data[ti::dt][:-1]
+    c_tpdt = data[ti::dt][1:]
+    return np.array((1/dt)*np.log(c_t/c_tpdt))
+
 def effective_mass(data):
     """
     Computes the effective mass analytically using the following formula
@@ -329,28 +348,6 @@ class CorrFunction:
             E += p['%s_E_el_%d' % (x['state'], i)]
         return E
     
-    # def threept(self,x,p,n,tsep_gA,tsep_gV,tau_gA,tau_gV):
-    #    t = x['t_range']
-    #    for n in range(x['n_state']):
-    #     E_n = self.En(x, p, n)
-
-    #     r = {}
-
-    #     r['pt3_gA'] = p['gA_00']*(self.exp(x,p)*tsep_gA) 
-    #     r['pt3_gV'] = p['gV_00']*(self.exp(x,p)*tsep_gV) 
-
-    #     for i in range(n):    
-    #         for j in range(n):
-    #             if i+j >= 1:
-    #                 if j == i:
-    #                     r['pt3_gA'] += p['gA_'+str(j)+str(i)]*(self.exp(x,p)*tsep_gA)
-    #                     r['pt3_gV'] += p['gV_'+str(j)+str(i)]*(self.exp(x,p)*tsep_gV)
-    #                 else:
-    #                     mi = np.minimum(j, i)
-    #                     ma = np.maximum(j, i)
-    #                     r['pt3_gA'] += p['gA_'+str(mi)+str(ma)]*(self.exp(x,p)*tsep_gA)*(self.exp(x,p)*tau_gA)
-    #                     r['pt3_gV'] += p['gV_'+str(mi)+str(ma)]*(self.exp(x,p)*tsep_gV)*(self.exp(x,p)*tau_gV)
-    #     return r
 
     def exp(self, x, p):
         #print('DEBUG:',x)

@@ -30,7 +30,7 @@ class FastFit(object):
     # Derived form Lepage's corrfitter module:
     # https://github.com/gplepage/corrfitter/blob/master/src/corrfitter/_corrfitter.py
     
-    def __init__(self, data, ampl='0(1)', dE='1(1)', E='.5(.2)', s=(1, -1),
+    def __init__(self, data, ampl='0(1)', dE='1(1)', E='.5(.1)', s=(1, -1),
                  tp=None, tmin=6, svdcut=1e-6, osc=False, nterm=10):
         """
         Args:

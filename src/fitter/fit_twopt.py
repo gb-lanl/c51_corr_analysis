@@ -207,8 +207,8 @@ def main():
     # t_range = [5,20]
     # print(x['gA'])
     fit_funcs = cf.FitCorr()
-    fiut_lst,p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
-    print(x_fit)
+    fit_lst,p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+    print(fit_lst)
     # for state in states:
     #     print(x_fit.keys())
     # # print(x_fit)

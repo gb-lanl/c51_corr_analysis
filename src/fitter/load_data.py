@@ -32,28 +32,28 @@ def make_fit_params(fp,states,gv_data):
     
     resized_prior = {}
     max_n_states = np.max([n_states[key] for key in n_states.keys()])
-    prior = fp.priors
+    prior = fp.prior
     # print(prior)
-    if state in ['gA','gV']:
-        for k in prior.keys():
-            if k == 'gA_nm':
-                resized_prior[k] = prior[k][:n_states['gA']]
-            elif k == 'gV_nm':
-                resized_prior[k] = prior[k][:n_states['gV']]
-            elif k in ['dA_PS','dA_SS']:
-                resized_prior[k] = prior[k][:n_states['gA']]
-            elif k in ['dV_PS','dV_SS']:
-                resized_prior[k] = prior[k][:n_states['gV']]
-            else:
-                resized_prior[k] = prior[k]
+    # if state in ['gA','gV']:
+    #     for k in prior.keys():
+    #         if k == 'gA_nm':
+    #             resized_prior[k] = prior[k][:n_states['gA']]
+    #         elif k == 'gV_nm':
+    #             resized_prior[k] = prior[k][:n_states['gV']]
+    #         elif k in ['dA_PS','dA_SS']:
+    #             resized_prior[k] = prior[k][:n_states['gA']]
+    #         elif k in ['dV_PS','dV_SS']:
+    #             resized_prior[k] = prior[k][:n_states['gV']]
+    #         else:
+    #             resized_prior[k] = prior[k]
 
-            # for state in states:
-            #     k_n = int(k.split('_')[-1].split(')')[0])
-            #     print(k_n)
-            #     if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
-            #         resized_prior[k] = gv.gvar(prior[k].mean, prior[k].sdev)
+    #         # for state in states:
+    #         #     k_n = int(k.split('_')[-1].split(')')[0])
+    #         #     print(k_n)
+    #         #     if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
+    #         #         resized_prior[k] = gv.gvar(prior[k].mean, prior[k].sdev)
 
-    new_prior = resized_prior.copy()
+    # new_prior = resized_prior.copy()
     return x,y,n_states,prior
 
 
