@@ -226,7 +226,7 @@ class C_3pt(object):
     def __init__(self, tag, ydict, noise_threshy=0.03, nt=None):
         self.tag = tag
         self.ydict = ydict
-        self._verify_ydict(nt)
+        # self._verify_ydict(nt)
         self.noise_threshy = noise_threshy
         tmp = list(self.values())[0]  # safe since we verified ydict
         if nt is None:
@@ -241,15 +241,15 @@ class C_3pt(object):
             format(self.tag, self.times.tmin, self.times.tmax,
                    self.times.nt, sorted(list(self.t_snks)))
 
-    def _verify_ydict(self, nt=None):
-        for t_sink in self.ydict:
-            if not isinstance(t_sink, int):
-                raise TypeError("t_sink keys must be integers.")
-        if nt is None:
-            try:
-                np.unique([len(arr) for arr in self.ydict.values()]).item()
-            except ValueError as _:
-                raise ValueError("Values in ydict must have same length.")
+    # def _verify_ydict(self, nt=None):
+    #     for t_sink in self.ydict:
+    #         if not isinstance(t_sink, int):
+    #             raise TypeError("t_sink keys must be integers.")
+    #     if nt is None:
+    #         try:
+    #             np.unique([len(arr) for arr in self.ydict.values()]).item()
+    #         except ValueError as _:
+    #             raise ValueError("Values in ydict must have same length.")
 
 
     def avg(self, m_src, m_snk):
@@ -274,14 +274,14 @@ class C_3pt(object):
 
         c3bar = {}
         t_snks = np.sort(np.array(self.t_snks))
-        # pylint: disable=invalid-name,protected-access
+        
         for T in t_snks:
             c3 = self.ydict[T]  # C(t, T)
             t = np.arange(len(c3))
             ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(T-t))
             tmp = _combine(ratio)
             c3bar[T] = tmp * np.exp(-m_src*t) * np.exp(-m_snk*(T-t))
-        # pylint: enable=invalid-name,protected-access
+
         return c3bar
 
     @property
@@ -313,10 +313,6 @@ class C_3pt(object):
     def values(self):
         """values from ydict"""
         return self.ydict.values()
-
-
-
-
 
 class CorrFunction:
 
@@ -442,7 +438,7 @@ class CorrFunction:
     def cosh(self, x, p):
         r = 0
         t = x['t_range']
-        T = x['T']
+        # T = x['T']
         for n in range(x['n_state']):
             z_src = p["%s_z%s_%d" % (x['state'], x['src'], n)]
             z_snk = p["%s_z%s_%d" % (x['state'], x['snk'], n)]

@@ -233,8 +233,6 @@ class PhysicalSplittings():
 class MesonPrior(BasePrior):
     """
     Prior for mesonic two-point correlation function.
-    MesonPrior is basically an extension of dict
-    which handles log priors gracefully.
     Args:
         n: int, the number of decaying states
         no: int, the number of oscillating states

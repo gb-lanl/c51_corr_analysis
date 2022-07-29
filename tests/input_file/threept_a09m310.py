@@ -25,7 +25,7 @@ corr_lst = {
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
-        't_sink'        :96,
+        't_snk'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -47,7 +47,7 @@ corr_lst = {
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
-        't_sink'        :96,
+        't_snk'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -70,7 +70,7 @@ corr_lst = {
         # fit params
         'tsep'     : 8,
         'n_state'  :3,
-        't_sink'        :96,
+        't_snk'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -93,7 +93,7 @@ corr_lst = {
         # fit params
         'tsep'     : 8,  
         'n_state'  :3,
-        't_sink'        :96,
+        't_snk'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -102,7 +102,7 @@ corr_lst = {
 
 }
 
-# priors = gv.BufferDict()
+prior = gv.BufferDict()
 x      = dict()
 for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
     for snk in corr_lst[corr]['snks']:
@@ -113,7 +113,12 @@ for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
         tag = state
         n_decay = 1
         n_oscillate = 0
-        prior = {}
+        # prior = {}
+        # V
+        nV = int((N * (N + 1)) / 2)
+        prior['Vnn'] = gv.gvar(nV * ['0.0(5)'])
+        prior['Voo'] = gv.gvar(nV * ['0.0(5)'])
+        prior['Vno'] = gv.gvar(N * [N * ['0.0(5)']])
         # ffit_ = ffit.FastFit(data)
         # Decaying energies and amplitudes
         n = range(n_decay)
@@ -158,8 +163,7 @@ for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
             for key in keys:
                 new_key = "{0}:{1}".format(tag, key)
                 prior[new_key] = np.asarray(prior.pop(key))
-    if state in ['gA_SS','gA_PS','gV_SS','gV_PS']:
-        
+   
 #proton
 # priors['proton_E_0']  = gv.gvar(0.5, .06)
 # priors['proton_zS_0'] = gv.gvar(2.0e-5, 1.e-5)
@@ -229,7 +233,7 @@ for corr in corr_lst:
         else:
             x[state]['t0'] = 0
         if 't_snk' in corr_lst[corr]:
-            x[state]['t_sink'] = corr_lst[corr]['t_sink']
+            x[state]['t_snk'] = corr_lst[corr]['t_snk']
         else:
             x[state]['t_sink'] = 80
         
