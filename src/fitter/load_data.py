@@ -30,7 +30,6 @@ def make_fit_params(fp,states,gv_data):
                 if state in k and 'mres' not in k:
                     n_states[state] = x[k]['n_state']
     
-    resized_prior = {}
     max_n_states = np.max([n_states[key] for key in n_states.keys()])
     prior = fp.prior
     # print(prior)

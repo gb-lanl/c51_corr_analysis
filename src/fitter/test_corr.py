@@ -24,6 +24,8 @@ def main():
     parser.add_argument('fit_params',    help='input file to specify fit')
     parser.add_argument('--fit',         default=True, action='store_true',
                         help=            'do fit? [%(default)s]')
+    parser.add_argument('--prior_override',default=True, action='store_true',
+                        help=            'override generated priors with priors from input file? [%(default)s]')
     parser.add_argument('-b', '--block', default=1, type=int,
                         help=            'specify bin/blocking size in terms of saved configs')
     parser.add_argument('--uncorr_corrs', default=False, action='store_true',
@@ -76,18 +78,21 @@ def main():
     
     """The number of configurations present.
         Use for time history plot."""
-    print(data_cfg['pion_SS'])
 
     nconfigs = [val.shape[0] for val in data_cfg.values()]
     nconfigs = np.unique(nconfigs).item()
     print(nconfigs)
 
-    x,y,n_states,priors  = ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
+    x,y,n_states,priors_  = ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     fit_funcs = cf.FitCorr()
 
-    fit_lst, p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors, states=states,x=x,y=y)
+     # if args.prior_override:
+    #     priors = 
+
+    fit_lst, p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors_, states=states,x=x,y=y)
     if x_fit.keys() != y_fit.keys():
         raise ValueError("keys: fit_states should be shared in both fit dicts")
+   
     axial_num_gv = {}
     vector_num_gv = {}
     corr_gv = {}
@@ -99,9 +104,10 @@ def main():
     corr_gv['PS'] = gv_data['proton_PS']
     # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
     # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
-   
+    # plot.plot_effective_mass(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
-    print(mass)
+    print(mass.E)
+    print(y)
     # print(y.items())
     data_chop = dict()
     if args.svd_test:
@@ -110,17 +116,17 @@ def main():
                 if d in x_fit and 'mres' not in d:
                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
                     # print(data_chop)
-        
-        svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
-        svdcut = svd_test.svdcut
-        print(svdcut)
-        has_svd = True
-        if args.svdcut is not None:
-            print('    s.svdcut = %.2e' %svd_test.svdcut)
-            print(' args.svdcut = %.2e' %args.svdcut)
-            use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
-            if use_svd in ['y','Y','yes']:
-                    svdcut = args.svdcut
+   
+    #     svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
+    #     svdcut = svd_test.svdcut
+    #     print(svdcut)
+    #     has_svd = True
+    #     if args.svdcut is not None:
+    #         print('    s.svdcut = %.2e' %svd_test.svdcut)
+    #         print(' args.svdcut = %.2e' %args.svdcut)
+    #         use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
+    #         if use_svd in ['y','Y','yes']:
+    #                 svdcut = args.svdcut
     # if has_svd:
     #         fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), prior=priors, p0=None, fcn=fit_funcs.fit_function,
     #                                    svdcut=svdcut)
@@ -156,25 +162,59 @@ def main():
     # denom_src = np.ones(len(t), dtype=object)
     # denom_snk = np.ones(len(t), dtype=object)
     # print(corr_gv)
-    tag = 'proton_SS'
-    tag_ = 'proton_PS'
+    Tags = ['proton_SS','proton_PS']
+    # ydict = {}
+    # for t in Tags:
+    #     ydict = x_fit[t]['t_range']
+    # t_snks = np.sort(ydict)
+    # t_snks
+    # Tags_ff = ['gA_SS','gA_PS']
     # tag_3pt = {'gA_SS','gA_PS'}
     # print(data[tag].shape)
     # print(y_fit.keys())
-    Tags = y_fit.keys()
-    print(Tags)
+    # Tags = y_fit.keys()
+    # print(Tags)
+    nt = np.unique([len(arr) for arr in y_fit.values()]).item()
+    print(nt)
+    # c3 = cf.C_3pt('gA_PS', ydict)
+    # print(c3)
     c2 = {}
     for tag in Tags:
         c2[tag] = cf.C_2pt(
-            tag, y_fit[tag], noise_threshy=0.03, nt=c3.times.nt, skip_fastfit=skip_fastfit
-        )
+            tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
+        
+    c2_snk = c2['proton_PS']
+    print(c2_snk.mass)
+    c2_src = c2['proton_SS']
+    # nts = [c2_src.times.nt,
+    #            c2_snk.times.nt,
+    #            c3.times.nt]
+    # for nt in nts:
+    #         if not np.all(nt == nts[0]):
+    #             raise ValueError('tdata does not match across correlators')
+    # fitter = C_2pt_Analysis(c2_src)
+    # # fit = fitter.run_fit()
     
+    # fit = fitter.run_fit()
+    # print(priors.MesonPrior())
+    tag = 'proton_SS'
+
+    #tsep values are keys, resulting range is value
+    ydict = {
+        8:  [0,9],
+        10: [0,11],
+        12: [0,13],
+        14: [0,15]
+    }
+   
+    print(x[tag]['t_range'])
+    tag_ = 'proton_PS'
     fit_out = test_NPoint(tag,gv_data,prior=priors)
-    print(fit_out)
-    # fit_ = test_NPoint_snk(tag_,gv_data,prior=priors)
-    # print(fit_)
+    fit_ = test_NPoint_snk(tag_,gv_data,prior=priors)
+    print(fit_)
     # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=True)
-    # test_NPoint_3pt('gA_SS',x_fit[)
+    fit_3pt = test_NPoint_3pt('gA_PS',ydict,fit_out,fit_)
+    print(fit_3pt)
     # test_BaseTimes()
    
 def test_main():
@@ -202,7 +242,7 @@ def test_BaseTimes():
     with pytest.raises(ValueError):
         times = cf.TimeContainer(tdata, tmax=len(tdata)+1)
 
-def test_NPoint(tag,data,prior):
+def test_NPoint(tag,data,prior): #prior
     """Test cf.C_2pt and cf.C_3pt class."""
     # print(data[tag].shape)
     nt = data[tag].shape
@@ -216,31 +256,18 @@ def test_NPoint(tag,data,prior):
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
     # prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
-    fitter = C_2pt_Analysis(c2_src,prior)
+    fitter = C_2pt_Analysis(c2_src)
     # fit = fitter.run_fit()
 
     fit = fitter.run_fit()
-
-
-    assert len(c2_src) == nt[0],\
-        "Unexpected len(c2)"
-    assert len(c2_src[:]) == nt[0],\
-        "Unexpected len(c2[:])"
-    assert c2_src.times.tmax == (len(c2_src) - 1),\
-        "Unexpected c2.times.tmax"
-    assert len(c2_src.meff(avg=False)) == (len(c2_src) - 2),\
-        "Unexpected len(c2_src.meff())"
 
     # c2.__setitem__
     c2_src[0] = 1.0
 
     # # Figures
-    _ = plot.plot_correlators(data,t_plot_max=20)
-    _ = plot.plot_effective_mass(data, 1, 16)
-    # _ = c2_src.plot_corr(avg=False)
-    # _ = c2_src.plot_meff(avg=False)
-    # _ = c2_src.plot_meff(avg=True)
-    return fit
+    # _ = plot.plot_correlators(data,t_plot_max=20)
+    # _ = plot.plot_effective_mass(data, 1, 16)
+    return c2_src
 
 def test_NPoint_snk(tag,data,prior):
     # tag = 'PS'
@@ -259,27 +286,30 @@ def test_NPoint_snk(tag,data,prior):
     
     # Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     # nstates = Nstates(n=1, no=0)
-    fitter = C_2pt_Analysis(c2_snk,prior)
+    fitter = C_2pt_Analysis(c2_snk)
     fit = fitter.run_fit()
     print(fit)
+
+    return c2_snk
 
     # _ = plot.plot_correlators(data,t_plot_max=20)
     # _ = plot.plot_effective_mass(data, 1, 16)
 
-def test_NPoint_3pt(tag,data):
+def test_NPoint_3pt(tag,data,c2_src,c2_snk):
     # nt = data[tag].shape
     # print(nt)
     # ds = {key: val for key, val in data.items()}
     c3 = cf.C_3pt(tag, data)
-    print(c3.ydict)
+    # print(c3.ydict)
     # avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
     # prior = priors.vmatrix(nstates)
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
-   
-    fitter = ThreePointAnalysis(c3)
-    fit = fitter.run_sequential_fits(nstates)
-    print(fit)
+    avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
+    # fitter = C_3pt_Analysis(c3)
+    # fit = fitter.run_sequential_fits(nstates)
+    # print(fit)
+    return c3
 
 def get_two_point_model(two_point, osc=True):
     tag = two_point.tag
@@ -422,11 +452,13 @@ class C_2pt_Analysis(object):
     A basic fitter class for two-point correlation functions.
     Args:
         c2: corr_functions.C_2pt object
+    Returns:
+        lsqfit fit object
     """
-    def __init__(self, c2,prior):
+    def __init__(self, c2):
         self.tag = c2.tag
         self.c2 = c2
-        self.prior = prior 
+        self.prior = None 
         self.fitter = None
         self._nstates = None
         self._fit = None
@@ -441,11 +473,11 @@ class C_2pt_Analysis(object):
                 tries to constuct a prior itself. TODO 
         """
         self._nstates = nstates
-        # if prior is None:
-        #     prior = priors.MesonPrior(
-        #         nstates.n, nstates.no, amps=['a', 'ao'],
-        #         tag=self.tag, ffit=self.c2.fastfit,
-        #         extend=True
+        if prior is None:
+            prior = priors.MesonPrior(
+                nstates.n, nstates.no, amps=['a', 'ao'],
+                tag=self.tag, ffit=self.c2.fastfit,
+                extend=True)
         #     ) #TODO this should try a meson/baryon prior class first then resort to
         #       dict of priors in label file 
         self.prior = prior
@@ -453,7 +485,7 @@ class C_2pt_Analysis(object):
         model = get_two_point_model(self.c2, bool(nstates.no))
         self.fitter = corrfitter.CorrFitter(models=model)
         data = {self.tag: self.c2}
-        fit = self.fitter.lsqfit(data=data, prior=prior, p0=prior.p0, **fitter_kwargs)
+        fit = self.fitter.lsqfit(data=data, prior=prior, p0=None, **fitter_kwargs)
         self._fit = fit
         fit.show_plots()
 
@@ -463,7 +495,9 @@ class C_2pt_Analysis(object):
 
 class C_3pt_Analysis(object):
     '''
-    Extract form factors from simult. fits to 2pt, 3pt fcns  
+    Perform simult. fits to 2pt, 3pt fcns
+    Output:
+        form factors: gA, gV  
     '''
     def __init__(self, ds, positive_ff=True):
 
@@ -479,10 +513,8 @@ class C_3pt_Analysis(object):
             prior=None, chain=False, constrain=False,
             **fitter_kwargs):
         """
-        Runs sequential fits.
         First runs two-point functions, Then runs the simult fit.
         """
-        
         self.prior = prior
         if tmin_override is not None:
             if tmin_override.src is not None:
@@ -492,7 +524,7 @@ class C_3pt_Analysis(object):
         self.fit_two_point(
             nstates=nstates,
             **fitter_kwargs)
-        self.fit_form_factor(
+        self.fit_three_point(
             nstates=nstates,
             chain=chain,
             constrain=constrain,
@@ -541,12 +573,13 @@ class C_3pt_Analysis(object):
                 LOGGER.warning('Fit failed for two-point function %s.', tag)
             else:
                 pass
+                #TODO generate prior from fit to be reused 
                 # self.prior.update(
                 #     update_with=fit.p, width=width, fractional_width=fractional_width)
             self.fits[tag] = fit
 
-    def fit_form_factor(self, nstates, chain=False, constrain=False, **fitter_kwargs):
-        """Run the sequential fit of 2- and 3-point functions for form factor."""
+    def fit_simult(self, nstates, chain=False, constrain=False, **fitter_kwargs):
+        """Run the simultaneous fit of 2- and 3-point functions for form factor."""
 
         # Handle prior
         prior = fitter_kwargs.get('prior')
@@ -602,12 +635,12 @@ class C_3pt_Analysis(object):
 
 class Ratio:
     '''
-    Analysis of C3pt/C2pt
+    Analysis of :math:`\< \frac{C3pt}{C2pt} \>`
     Returns:
     matrix elements -> form factors(gA,gV) 
     '''
 
-    
+
 
 
 # class SequentialFit_out:

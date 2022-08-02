@@ -104,66 +104,84 @@ corr_lst = {
 
 prior = gv.BufferDict()
 x      = dict()
-for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
-    for snk in corr_lst[corr]['snks']:
-        sp = snk+corr_lst[corr]['srcs'][0]
-        state = corr+'_'+sp
-    if state in ['pion_PS','pion_SS','proton_SS','proton_PS']:
-        amps = ['a', 'b', 'ao', 'bo']
-        tag = state
-        n_decay = 1
-        n_oscillate = 0
-        # prior = {}
-        # V
-        nV = int((N * (N + 1)) / 2)
-        prior['Vnn'] = gv.gvar(nV * ['0.0(5)'])
-        prior['Voo'] = gv.gvar(nV * ['0.0(5)'])
-        prior['Vno'] = gv.gvar(N * [N * ['0.0(5)']])
-        # ffit_ = ffit.FastFit(data)
-        # Decaying energies and amplitudes
-        n = range(n_decay)
-        prior['dE'] = [gv.gvar('1.0(1.0)')] +\
-            [gv.gvar('0.6(0.6)') for _ in range(1, n_decay)]
-        if 'a' in amps:
-            prior['a'] = [gv.gvar('0.1(1.0)') for _ in n]
-        if 'b' in amps:
-            prior['b'] = [gv.gvar('0.1(1.0)') for _ in n]
+N=2
+gA = gv.gvar('1.2(2)')
+prior['log(a)'] = gv.log(gv.gvar(N * ['0.3(3)']))
+prior['log(dE)'] =  gv.log(gv.gvar(N * ['0.5(5)']))
+prior['log(dE)'][0] = gv.log(gA)
 
-        # Oscillating eneriges and amplitudes
-        if n_oscillate > 0:
-            no = range(0, n_oscillate)
-            prior['dEo'] = [gv.gvar('1.65(50)')] +\
-                            [gv.gvar('0.6(0.6)') for _ in range(1, n_oscillate)]
-            if 'ao' in amps:
-                prior['ao'] = [gv.gvar('0.1(1.0)') for _ in no]
-            if 'bo' in amps:
-                prior['bo'] = [gv.gvar('0.1(1.0)') for _ in no]
+# Ds -- oscillating part
+prior['log(ao)'] = gv.log(gv.gvar(N * ['0.1(1)']))
+prior['log(dEo)'] = gv.log(gv.gvar(N * ['0.5(5)']))
+prior['log(dEo)'][0] = gv.log(gA + gv.gvar('0.3(3)'))
 
-        # Extract guesses for the ground-state energy and amplitude
-        # if ffit is not None:
-        #     dE_guess = gv.mean(ffit.E)
-        #     amp_guess = gv.mean(ffit.ampl)
-        #     prior['dE'][0] = gv.gvar(dE_guess, 0.5 * dE_guess)
-        #     if 'a' in amps:
-        #         prior['a'][0] = gv.gvar(amp_guess, 2.0 * amp_guess)
-        #     elif 'b' in amps:
-        #         prior['b'][0] = gv.gvar(amp_guess, 2.0 * amp_guess)
-        #     else:
-        #         msg = "Error: Unrecognized amplitude structure?"
-        #         raise ValueError(msg)
+# V
+nV = int((N * (N + 1)) / 2)
+prior['Vnn'] = gv.gvar(nV * ['0.0(5)'])
+prior['Voo'] = gv.gvar(nV * ['0.0(5)'])
+prior['Vno'] = gv.gvar(N * [N * ['0.0(5)']])
 
-        # Convert to arrays
-        keys = list(prior.keys())
-        if tag is None:
-            # Just convert to arrays
-            for key in keys:
-                prior[key] = np.asarray(prior[key])
-        else:
-            # Prepend keys with 'tag:' and then convert
-            for key in keys:
-                new_key = "{0}:{1}".format(tag, key)
-                prior[new_key] = np.asarray(prior.pop(key))
-   
+    # for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
+    #     for snk in corr_lst[corr]['snks']:
+    #         sp = snk+corr_lst[corr]['srcs'][0]
+    #         state = corr+'_'+sp
+    #     if state in ['pion_PS','pion_SS','proton_SS','proton_PS']:
+    #         amps = ['a', 'b', 'ao', 'bo']
+    #         tag = state
+    #         n_decay = 1
+    #         n_oscillate = 0
+    #         # prior = {}
+    #         # V
+    #         nV = int((N * (N + 1)) / 2)
+    #         prior['Vnn'] = gv.gvar(nV * ['0.0(5)'])
+    #         prior['Voo'] = gv.gvar(nV * ['0.0(5)'])
+    #         prior['Vno'] = gv.gvar(N * [N * ['0.0(5)']])
+    #         # ffit_ = ffit.FastFit(data)
+    #         # Decaying energies and amplitudes
+    #         n = range(n_decay)
+    #         prior['dE'] = [gv.gvar('1.0(1.0)')] +\
+    #             [gv.gvar('0.6(0.6)') for _ in range(1, n_decay)]
+    #         if 'a' in amps:
+    #             prior['a'] = [gv.gvar('0.1(1.0)') for _ in n]
+    #         if 'b' in amps:
+    #             prior['b'] = [gv.gvar('0.1(1.0)') for _ in n]
+
+    #         # Oscillating eneriges and amplitudes
+    #         if n_oscillate > 0:
+    #             no = range(0, n_oscillate)
+    #             prior['dEo'] = [gv.gvar('1.65(50)')] +\
+    #                             [gv.gvar('0.6(0.6)') for _ in range(1, n_oscillate)]
+    #             if 'ao' in amps:
+    #                 prior['ao'] = [gv.gvar('0.1(1.0)') for _ in no]
+    #             if 'bo' in amps:
+    #                 prior['bo'] = [gv.gvar('0.1(1.0)') for _ in no]
+
+    #         # Extract guesses for the ground-state energy and amplitude
+    #         # if ffit is not None:
+    #         #     dE_guess = gv.mean(ffit.E)
+    #         #     amp_guess = gv.mean(ffit.ampl)
+    #         #     prior['dE'][0] = gv.gvar(dE_guess, 0.5 * dE_guess)
+    #         #     if 'a' in amps:
+    #         #         prior['a'][0] = gv.gvar(amp_guess, 2.0 * amp_guess)
+    #         #     elif 'b' in amps:
+    #         #         prior['b'][0] = gv.gvar(amp_guess, 2.0 * amp_guess)
+    #         #     else:
+    #         #         msg = "Error: Unrecognized amplitude structure?"
+    #         #         raise ValueError(msg)
+
+    #         # Convert to arrays
+    # keys = list(prior.keys())
+    # tag = 'proton_PS'
+    # if tag is None:
+    #     # Just convert to arrays
+    #     for key in keys:
+    #         prior[key] = np.asarray(prior[key])
+    # else:
+    #     # Prepend keys with 'tag:' and then convert
+    #     for key in keys:
+    #         new_key = "{0}:{1}".format(tag, key)
+    #         prior[new_key] = np.asarray(prior.pop(key))
+
 #proton
 # priors['proton_E_0']  = gv.gvar(0.5, .06)
 # priors['proton_zS_0'] = gv.gvar(2.0e-5, 1.e-5)
@@ -235,7 +253,7 @@ for corr in corr_lst:
         if 't_snk' in corr_lst[corr]:
             x[state]['t_snk'] = corr_lst[corr]['t_snk']
         else:
-            x[state]['t_sink'] = 80
+            x[state]['t_snk'] = 80
         
         if 'mres' not in corr:
             x[state]['color'] = corr_lst[corr]['colors'][sp]

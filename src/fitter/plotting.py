@@ -165,7 +165,7 @@ def plot_effective_g00(fh_num_gv, corr_gv,
     else: plt.close()
 
     return fig
-def plot_effective_mass(correlators_gv,fit, t_plot_min = None, t_plot_max = 15,show_plot=True,show_fit=None):
+def plot_effective_mass(correlators_gv,fit=None, t_plot_min = None, t_plot_max = 15,show_plot=True,show_fit=None):
     if t_plot_min == None: t_plot_min = 0
     if t_plot_max == None: t_plot_max = correlators_gv[correlators_gv.keys()[0]].shape[0] - 1
 
@@ -203,10 +203,10 @@ def plot_effective_mass(correlators_gv,fit, t_plot_min = None, t_plot_max = 15,s
     plt.ylim(0.5, 0.75)
     plt.xlabel('$t$', fontsize = 24)
     plt.ylabel('$m_{eff}$', fontsize = 24)
-    fit = plt.gcf()
+    fig = plt.gcf()
     if show_plot == True: plt.show()
     else: plt.close()
-    return fit
+    return fig
 
 def plot_correlators(correlators_gv, show_plot=True,t_plot_min = None, t_plot_max = None):
     if t_plot_min == None: t_plot_min = 0

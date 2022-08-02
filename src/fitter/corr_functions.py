@@ -122,7 +122,7 @@ class C_2pt(object):
         if tdata is None:
             tdata = np.arange(len(ydata))
         self.times = TimeContainer(tdata=tdata, **time_kwargs)
-        self.times.tmax = _infer_tmax(ydata, noise_threshy)
+        self.times.tmax = _infer_tmax(ydata, noise_threshy=None)
         # Estimate the ground-state energy and amplitude
         if skip_fastfit:
             self.fastfit = None
@@ -131,7 +131,7 @@ class C_2pt(object):
                 data=self.ydata[:self.times.tmax],
                 tp=self.times.tp,
                 tmin=self.times.tmin)
-        self._mass = None
+        self._mass = gv.gvar('0.61299(35)')
     
     def set_mass(self, mass):
         self._mass = mass
@@ -189,36 +189,6 @@ class C_2pt(object):
         return "TwoPoint[tag='{}', tmin={}, tmax={}, nt={}, mass={}]".\
             format(self.tag, self.times.tmin, self.times.tmax, self.times.nt,
                    self.mass)
-    def plot_corr(self, ax=None, avg=False, **kwargs):
-        """Plot the correlator on a log scale."""
-        if ax is None:
-            _, ax = plt.subplots(1, figsize=(10, 5))
-        if avg:
-            y = self.avg()
-            x = self.times.tfit[1:-1]
-        else:
-            y = self.ydata
-            x = self.times.tdata
-        ax = plt.mirror(ax=ax, x=x, y=y, **kwargs)
-        ax.set_yscale('log')
-        return ax
-
-    def plot_meff(self, ax=None, avg=False, a_fm=None, tmax=np.inf, **kwargs):
-        """Plot the effective mass of the correlator."""
-        if ax is None:
-            _, ax = plt.subplots(1)
-        kwargs['fmt'] = kwargs.get('fmt', 'o')
-        if avg:
-            y = effective_mass(self.avg())
-            x = self.times.tdata[1:-1]
-        else:
-            y = effective_mass(self.ydata)
-            x = self.times.tdata[1:-1]
-        if a_fm is not None:
-            y = y * 197 / a_fm
-        mask = x < (tmax + 1)
-        plt.errorbar(ax, x[mask], y[mask], **kwargs)
-        return ax
 
     
 class C_3pt(object):
@@ -226,7 +196,7 @@ class C_3pt(object):
     def __init__(self, tag, ydict, noise_threshy=0.03, nt=None):
         self.tag = tag
         self.ydict = ydict
-        # self._verify_ydict(nt)
+        self._verify_ydict(nt)
         self.noise_threshy = noise_threshy
         tmp = list(self.values())[0]  # safe since we verified ydict
         if nt is None:
@@ -241,15 +211,15 @@ class C_3pt(object):
             format(self.tag, self.times.tmin, self.times.tmax,
                    self.times.nt, sorted(list(self.t_snks)))
 
-    # def _verify_ydict(self, nt=None):
-    #     for t_sink in self.ydict:
-    #         if not isinstance(t_sink, int):
-    #             raise TypeError("t_sink keys must be integers.")
-    #     if nt is None:
-    #         try:
-    #             np.unique([len(arr) for arr in self.ydict.values()]).item()
-    #         except ValueError as _:
-    #             raise ValueError("Values in ydict must have same length.")
+    def _verify_ydict(self, nt=None):
+        for t_sink in self.ydict:
+            if not isinstance(t_sink, int):
+                raise TypeError("t_sink keys must be integers.")
+        if nt is None:
+            try:
+                np.unique([len(arr) for arr in self.ydict.values()]).item()
+            except ValueError as _:
+                raise ValueError("Values in ydict must have same length.")
 
 
     def avg(self, m_src, m_snk):
