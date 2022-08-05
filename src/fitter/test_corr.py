@@ -75,14 +75,16 @@ def main():
         states = args.states
     else:
         states = fp.fit_states
-    
+
     """The number of configurations present.
         Use for time history plot."""
 
     nconfigs = [val.shape[0] for val in data_cfg.values()]
     nconfigs = np.unique(nconfigs).item()
-    print(nconfigs)
+    # print(nconfigs)
 
+    ds = {key: gv.dataset.avg_data(data_cfg) for key, val in data_cfg.items()}
+    print(ds)
     x,y,n_states,priors_  = ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     fit_funcs = cf.FitCorr()
 
@@ -106,8 +108,8 @@ def main():
     # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
     # plot.plot_effective_mass(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
-    print(mass.E)
-    print(y)
+    # print(mass.E)
+    # print(y)
     # print(y.items())
     data_chop = dict()
     if args.svd_test:
@@ -117,9 +119,9 @@ def main():
                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
                     # print(data_chop)
    
-    #     svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
-    #     svdcut = svd_test.svdcut
-    #     print(svdcut)
+        svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
+        svdcut = svd_test.svdcut
+        print(svdcut)
     #     has_svd = True
     #     if args.svdcut is not None:
     #         print('    s.svdcut = %.2e' %svd_test.svdcut)
@@ -138,7 +140,7 @@ def main():
     # else:
     #     print(fit)
     # y = {}
-    # ds = {key: val for key, val in x_fit.items()}
+
     # ydict = {tag: val for tag, val in x_fit.items() if isinstance(tag, int)}
     # print(ydict)
     
@@ -176,13 +178,13 @@ def main():
     # print(Tags)
     nt = np.unique([len(arr) for arr in y_fit.values()]).item()
     print(nt)
-    # c3 = cf.C_3pt('gA_PS', ydict)
-    # print(c3)
+   
     c2 = {}
     for tag in Tags:
         c2[tag] = cf.C_2pt(
             tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
-        
+    # c2_ = {tag: c2[tag].avg() for tag in c2}
+    # print(c2_)
     c2_snk = c2['proton_PS']
     print(c2_snk.mass)
     c2_src = c2['proton_SS']
@@ -197,9 +199,10 @@ def main():
     
     # fit = fitter.run_fit()
     # print(priors.MesonPrior())
-    tag = 'proton_SS'
+    
+    # these should go in input file 
+    
 
-    #tsep values are keys, resulting range is value
     ydict = {
         8:  [0,9],
         10: [0,11],
@@ -208,10 +211,12 @@ def main():
     }
    
     print(x[tag]['t_range'])
+    tag = 'proton_SS'
     tag_ = 'proton_PS'
     fit_out = test_NPoint(tag,gv_data,prior=priors)
     fit_ = test_NPoint_snk(tag_,gv_data,prior=priors)
     print(fit_)
+    print(fit_out)
     # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=True)
     fit_3pt = test_NPoint_3pt('gA_PS',ydict,fit_out,fit_)
     print(fit_3pt)
@@ -263,7 +268,7 @@ def test_NPoint(tag,data,prior): #prior
 
     # c2.__setitem__
     c2_src[0] = 1.0
-
+    print(fit)
     # # Figures
     # _ = plot.plot_correlators(data,t_plot_max=20)
     # _ = plot.plot_effective_mass(data, 1, 16)
@@ -273,7 +278,7 @@ def test_NPoint_snk(tag,data,prior):
     # tag = 'PS'
     nt = data[tag].shape
     data_ = data.pop(tag)
-    c2_snk = cf.C_2pt(tag, data_,skip_fastfit=False)
+    c2_snk = cf.C_2pt(tag, data_)
     print(c2_snk)
     assert len(c2_snk) == nt[0],\
         "Unexpected len(c2_snk)"
@@ -306,9 +311,9 @@ def test_NPoint_3pt(tag,data,c2_src,c2_snk):
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
     avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
-    # fitter = C_3pt_Analysis(c3)
-    # fit = fitter.run_sequential_fits(nstates)
-    # print(fit)
+    fitter = C_3pt_Analysis(c3)
+    fit = fitter.run_sequential_fits(nstates)
+    print(fit)
     return c3
 
 def get_two_point_model(two_point, osc=True):
@@ -338,7 +343,7 @@ def get_two_point_model(two_point, osc=True):
 def get_three_point_model(t_snk, tfit, tdata, nstates, tags=None, constrain=False):
     """Gets a model for a 3pt function."""
     if tags is None:
-        tags = Tags(src='SS', snk='PS')
+        tags = Tags(src='SS', snk='PS') #this should be state+_sink
     src = tags.src
     snk = tags.snk
     # if max value of t_range of fit exceeds that of data, abort 
@@ -502,9 +507,9 @@ class C_3pt_Analysis(object):
     def __init__(self, ds, positive_ff=True):
 
         self.ds = ds #gvar dataset
-        self.positive_ff = positive_ff
+        self.positive_ff = positive_ff #forces form factor to be positive
         self.prior = None
-        self.fits = {}
+        self.fits = {} #fit dict to fill 
         self.fitter = None
         self.r = None
 
@@ -566,17 +571,18 @@ class C_3pt_Analysis(object):
             _nstates = nstates
             if tag == self.ds.tags.snk:
               _nstates = Nstates(n=nstates.m, no=nstates.mo)
-            # TODO: handle possible re-running if fit fails initially
+            
             fit = C_2pt_Analysis(self.ds.c2[tag]).\
                 run_fit(_nstates, **fitter_kwargs)
             if fit is None:
                 LOGGER.warning('Fit failed for two-point function %s.', tag)
             else:
                 pass
+            # TODO: handle possible re-running if fit fails initially
                 #TODO generate prior from fit to be reused 
                 # self.prior.update(
                 #     update_with=fit.p, width=width, fractional_width=fractional_width)
-            self.fits[tag] = fit
+            self.fits[tag] = fit #tags are of form state+_sink
 
     def fit_simult(self, nstates, chain=False, constrain=False, **fitter_kwargs):
         """Run the simultaneous fit of 2- and 3-point functions for form factor."""
@@ -604,9 +610,9 @@ class C_3pt_Analysis(object):
             return
 
         # Run fit
-        self.fitter = corrfitter.CorrFitter(models=models_list)
+        self.fitter = corrfitter.CorrFitter(models=models_list) #call Lepage's library
         if chain:
-            _lsqfit = self.fitter.chained_lsqfit
+            _lsqfit = self.fitter.chained_lsqfit #chained lsqfit 
         else:
             _lsqfit = self.fitter.lsqfit
         fit = _lsqfit(data=self.ds, **fitter_kwargs)
@@ -620,6 +626,7 @@ class C_3pt_Analysis(object):
        
         vnn = fit.p['Vnn'][0, 0]
         self.r = convert_vnn_to_ratio(self.m_src, vnn)
+    #TODO routine to convert fit into plaintext, possible use for bootstrapping
 
         # TODO call plotting commans here 
 
@@ -637,8 +644,48 @@ class Ratio:
     '''
     Analysis of :math:`\< \frac{C3pt}{C2pt} \>`
     Returns:
-    matrix elements -> form factors(gA,gV) 
+    matrix elements eg. form factors(gA,gV) at each T
     '''
+    def __init__(self,x_params,fit_params):
+        self.x_params   = x_params 
+        self.fit_params = p
+        self._fit = None
+        fcn = cf.CorrFunction()
+    def get_ratio_model(self):
+        result = {}
+        for t_snk, t in self.fit_params.items():
+
+            result[t_snk] = fcn.exp_open(self.x_params, self.fit_params)
+
+        return result 
+
+    def make_fit_data(self,tmin_src,tmin_snk):
+        # keys for dicts: T values, values: Ratio(T) 
+        y_fit = {}
+        x_fit = {}
+        pt3_data_start = 2 #tmin_src
+        pt3_data_end = 15 # T+1- tmin_snk
+        linspace_num = 100
+        #tsep values are keys, range is value
+        gA_tsep = []
+        gA_tau = []
+        for t in range(pt3_data_start, pt3_data_end): # tsep and tau to calc fit values of no transition 
+            if t % 2 == 0: # only when tsep is even, tau = tsep/2
+                gA_tsep.append(t)
+                gA_tau.append(t/2) # tau = tsep/2
+
+
+
+    def make_prior(self):
+        prior = {}
+
+    def __call__(self):
+        x_fit, y_fit = self.make_fit_data(tmin_src, tmin_snk)
+        prior = self.make_prior()
+        model = self.get_ratio_model()
+        fit = lsqfit.nonlinear_fit(data=(x_fit, y_fit), fcn=model, prior=prior, **fitter_kwargs)
+        self._fit = fit #this just fills empty fit with generated fit, lsqfit technicality? 
+        return fit 
 
 
 

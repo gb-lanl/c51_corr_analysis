@@ -156,7 +156,7 @@ class C_2pt(object):
         else:
             return effective_mass(self.ydata)
 
-    def avg(self, mass=1.0):
+    def avg(self, mass=-1.0):
         """
         Compute the time-slice-averaged two-point correlation function.
         """
