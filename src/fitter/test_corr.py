@@ -15,6 +15,9 @@ import fitter.load_data as ld
 import fitter.plotting as plot
 import fitter.fastfit as prelim #LePage's preliminary corrfitter to generate p0
 import fitter.priors as priors 
+sys.path.insert(0, '/home/gbradley/nucleon_elastic_FF')
+from nucleon_elastic_ff.data.h5io import get_dsets 
+
 
 SVDCUT = 0.002
 Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
@@ -47,6 +50,64 @@ def main():
     sys.path.append(os.path.dirname(os.path.abspath(args.fit_params)))
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
+
+    h5fname = '/home/gbradley/c51_corr_analysis/tests/data/C13/C13-b_4002.ama.h5'
+    data = {}
+    corrs_gv = {}
+    with h5py.File(h5fname, 'r') as h5f:
+        dsets = get_dsets(h5f)
+        # print(dsets)
+        for key in dsets.keys():
+            # print(key)
+            data[key] = h5f[key][:]
+            # corrs_gv[key] = gv.dataset.avg_data(data[key])
+            # print(corrs_gv.keys())
+    print(data['2pt/ext_current/src5.0_snk5.0/ext_axial_A1_A1/C13.b_4002/AMA'])
+    datatag = '2pt/proton/src5.0_snk5.0/proton/C13.b_4002/AMA'
+    datatag_SP = '2pt/proton_SP/src5.0_snk5.0/proton/C13.b_4002/AMA' 
+    mass = prelim.FastFit(data[datatag])
+
+    fit_out = test_NPoint(datatag,data,prior=priors)
+    fit_ = test_NPoint_snk(datatag_SP,data,prior=priors)
+    print(fit_)
+    print(fit_out)
+    
+    # `2pt/pion/src5.0_snk5.0/pion/C13.b_4002/AMA`
+    # `2pt/pion_SP/src5.0_snk5.0/pion/C13.b_4002/AMA`
+    # `3pt_tsep10/NUCL_D_MIXED_NONREL_l0_g0/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_4002/AMA`
+
+
+    def parse_baryon_tag(datatag):
+        datatag_split = datatag.split('/')
+        corr_type     = datatag_split[0]
+        tsep          = int(corr_type.split('_tsep')[1])
+        buffer        =  datatag_split[1]
+        channel       = buffer.split('_')[0]
+        quark_ins       = buffer.split('_')[1]
+        spin_proj       = buffer.split('_')[2]
+        quark_sep       = buffer.split('_')[3]
+        gamma           = buffer.split('_')[4] #gamma matrix of quark bilinear operator in the CHROMA convention , value accessed via dict
+        src_snk_sep     = datatag_split[2]
+        mom         = datatag_split[3]
+        mom0       = mom.split('_')[0]
+        mom1       = mom.split('_')[1]
+        mom2       = mom.split('_')[2]
+        momentum        = (mom0,mom1,mom2)
+        config   = datatag_split[4]
+
+        data_dict = dict()
+        data_dict['corr_type']   = corr_type
+        data_dict['tsep']        = tsep
+        data_dict['buffer']      = buffer
+        data_dict['channel']     = channel
+        data_dict['quark_ins']   = quark_ins
+        data_dict['spin_proj']   = spin_proj
+        data_dict['quark_sep']   = quark_sep
+        data_dict['gamma']       = gamma
+        data_dict['src_snk_sep'] = src_snk_sep
+        data_dict['mom']         = momentum
+        data_dict['config']      = config
+        return data_dict
 
     # re-weight correlators?
     try:
@@ -84,7 +145,7 @@ def main():
     # print(nconfigs)
 
     ds = {key: gv.dataset.avg_data(data_cfg) for key, val in data_cfg.items()}
-    print(ds)
+    # print(ds)
     x,y,n_states,priors_  = ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     fit_funcs = cf.FitCorr()
 
