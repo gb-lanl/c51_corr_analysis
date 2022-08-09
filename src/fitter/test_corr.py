@@ -51,63 +51,126 @@ def main():
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
 
-    h5fname = '/home/gbradley/c51_corr_analysis/tests/data/C13/C13-b_4002.ama.h5'
-    data = {}
-    corrs_gv = {}
-    with h5py.File(h5fname, 'r') as h5f:
-        dsets = get_dsets(h5f)
-        # print(dsets)
-        for key in dsets.keys():
-            # print(key)
-            data[key] = h5f[key][:]
-            # corrs_gv[key] = gv.dataset.avg_data(data[key])
-            # print(corrs_gv.keys())
-    print(data['2pt/ext_current/src5.0_snk5.0/ext_axial_A1_A1/C13.b_4002/AMA'])
-    datatag = '2pt/proton/src5.0_snk5.0/proton/C13.b_4002/AMA'
-    datatag_SP = '2pt/proton_SP/src5.0_snk5.0/proton/C13.b_4002/AMA' 
-    mass = prelim.FastFit(data[datatag])
-
-    fit_out = test_NPoint(datatag,data,prior=priors)
-    fit_ = test_NPoint_snk(datatag_SP,data,prior=priors)
-    print(fit_)
-    print(fit_out)
+    # h5fname = '/home/gbradley/c51_corr_analysis/tests/data/C13/C13-b_4002.ama.h5'
     
-    # `2pt/pion/src5.0_snk5.0/pion/C13.b_4002/AMA`
-    # `2pt/pion_SP/src5.0_snk5.0/pion/C13.b_4002/AMA`
-    # `3pt_tsep10/NUCL_D_MIXED_NONREL_l0_g0/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_4002/AMA`
+    # data = {}
+    # corrs_gv = {}
+    # with h5py.File(h5fname, 'r') as h5f:
+    #     dsets = get_dsets(h5f)
+    #     # print(dsets)
+    #     for key in dsets.keys():
+        
+    #         # print(key)
+    #         data[key] = h5f[key][:]
+    #     ordered_datatags = sorted(data.keys(),key=str)
+    #     # print(ordered_datatags)
+    #     sizes = [data[tag].shape[0] for tag in ordered_datatags]
+    # #     # print(sizes)
+    # #         # corrs_gv[key] = gv.dataset.avg_data(data[key])
+    # #         # print(corrs_gv.keys())
+    # # # print(data['2pt/ext_current/src5.0_snk5.0/ext_axial_A1_A1/C13.b_4002/AMA'])
+    # datatag = '2pt/proton/src5.0_snk5.0/proton/C13.b_4002/AMA'
+    # datatag_SP = '2pt/proton_SP/src5.0_snk5.0/proton/C13.b_4002/AMA' 
+    # corr_ss = data[datatag]
+    # corr_ps = data[datatag_SP]
+    
+    # for j in range(len(corr_ss)):
+    #     #source @ t=0, tins @ t=t, tsnk @ t=Tau
+    #     # for k in range(j+1):
+    #     Esrc_re[i] = np.array(corr_ss[j][0]) #real part of 3pt corr fcn
+    #     Esrc_im[i] = (corr_ss[j][1]) #imag part of 3pt corr fcn 
+    #     print(Esrc_re)
+    # for i in range(len(corr_ps)):
+    #     #source @ t=0, tins @ t=t, tsnk @ t=Tau
+    #     # for k in range(j+1):
+    #     Esnk_re[i] = np.array(corr_ps[i][0]) #real part of 3pt corr fcn
+    #     Esnk_im[i] = (corr_ps[i][1]) #imag part of 3pt corr fcn 
+        
+    # ydata = {}
+    # ydata['ss'] = Esrc_re
+    # ydata['ps'] = Esnk_re
+    # print(ydata)
+   
+    # # # nt = corr_ss.shape
+    # # # print(nt)
+    # # # corr_ss = corr_ss[..., np.newaxis]
+    # # _, nt = corr_ss.shape
+    # # print(nt)
+    # # t = np.arange(nt)
+    # # # cr = corr_ss[:, :nt // 2 +1]
+    # # # print(cr)
+    # # corr_ss_ = corr_ss.real
+    # # c = corr_ss.imag
+    # fit_out = test_NPoint(tag,Esrc_re,prior=priors)
+    # # fit_ = test_NPoint_snk(datatag_SP,data,prior=priors)
+    # # print(fit_)
+    # print(fit_out)
+    
+    # print(gv.dataset.avg_data(out))
+    # # cov = correct_covariance(data, **kwargs)
+    # # dset = corrfitter.read_dataset(h5fname,h5group=datatag)
+    # # print(dset.size())
+    # def time_reverse(corr, reverse=True, phase=1, time_axis=1):
+    #     ''' assumes time index is second of array
+    #         assumes phase = +- 1
+    #     '''
+    #     if reverse:
+    #         if len(corr.shape) > 1:
+    #             cr = phase * np.roll(corr[:, ::-1], 1, axis=time_axis)
+    #             cr[:, 0] = phase * cr[:, 0]
+    #         else:
+    #             cr = phase * np.roll(corr[::-1], 1)
+    #             cr[0] = phase * cr[0]
+    #     else:
+    #         cr = phase * corr
+    #     return cr
+    # def fold(data):
+    #     data = 0.5*(data + time_reverse(data))
+    #     return data
+
+    # # # fold(corr_ss)
+    # # for key, value in dset.items():
+    # #     print(key,value)
+    # # # mass = prelim.FastFit(data[datatag])
+
+   
+    
+    # # `2pt/pion/src5.0_snk5.0/pion/C13.b_4002/AMA`
+    # # `2pt/pion_SP/src5.0_snk5.0/pion/C13.b_4002/AMA`
+    # # `3pt_tsep10/NUCL_D_MIXED_NONREL_l0_g0/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_4002/AMA`
 
 
-    def parse_baryon_tag(datatag):
-        datatag_split = datatag.split('/')
-        corr_type     = datatag_split[0]
-        tsep          = int(corr_type.split('_tsep')[1])
-        buffer        =  datatag_split[1]
-        channel       = buffer.split('_')[0]
-        quark_ins       = buffer.split('_')[1]
-        spin_proj       = buffer.split('_')[2]
-        quark_sep       = buffer.split('_')[3]
-        gamma           = buffer.split('_')[4] #gamma matrix of quark bilinear operator in the CHROMA convention , value accessed via dict
-        src_snk_sep     = datatag_split[2]
-        mom         = datatag_split[3]
-        mom0       = mom.split('_')[0]
-        mom1       = mom.split('_')[1]
-        mom2       = mom.split('_')[2]
-        momentum        = (mom0,mom1,mom2)
-        config   = datatag_split[4]
+    # def parse_baryon_tag(datatag):
+    #     datatag_split = datatag.split('/')
+    #     corr_type     = datatag_split[0]
+    #     tsep          = int(corr_type.split('_tsep')[1])
+    #     buffer        =  datatag_split[1]
+    #     channel       = buffer.split('_')[0]
+    #     quark_ins       = buffer.split('_')[1]
+    #     spin_proj       = buffer.split('_')[2]
+    #     quark_sep       = buffer.split('_')[3]
+    #     gamma           = buffer.split('_')[4] #gamma matrix of quark bilinear operator in the CHROMA convention , value accessed via dict
+    #     src_snk_sep     = datatag_split[2]
+    #     mom         = datatag_split[3]
+    #     mom0       = mom.split('_')[0]
+    #     mom1       = mom.split('_')[1]
+    #     mom2       = mom.split('_')[2]
+    #     momentum        = (mom0,mom1,mom2)
+    #     config   = datatag_split[4]
 
-        data_dict = dict()
-        data_dict['corr_type']   = corr_type
-        data_dict['tsep']        = tsep
-        data_dict['buffer']      = buffer
-        data_dict['channel']     = channel
-        data_dict['quark_ins']   = quark_ins
-        data_dict['spin_proj']   = spin_proj
-        data_dict['quark_sep']   = quark_sep
-        data_dict['gamma']       = gamma
-        data_dict['src_snk_sep'] = src_snk_sep
-        data_dict['mom']         = momentum
-        data_dict['config']      = config
-        return data_dict
+    #     data_dict = dict()
+    #     data_dict['corr_type']   = corr_type
+    #     data_dict['tsep']        = tsep
+    #     data_dict['buffer']      = buffer
+    #     data_dict['channel']     = channel
+    #     data_dict['quark_ins']   = quark_ins
+    #     data_dict['spin_proj']   = spin_proj
+    #     data_dict['quark_sep']   = quark_sep
+    #     data_dict['gamma']       = gamma
+    #     data_dict['src_snk_sep'] = src_snk_sep
+    #     data_dict['mom']         = momentum
+    #     data_dict['config']      = config
+    #     return data_dict
 
     # re-weight correlators?
     try:
@@ -165,9 +228,10 @@ def main():
     vector_num_gv['PS'] = gv_data['gV_PS']
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
-    # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
-    # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
-    # plot.plot_effective_mass(corr_gv)
+    plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
+    plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
+    plot.plot_effective_mass(corr_gv)
+    # plot.plot_correlator_summary(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
     # print(mass.E)
     # print(y)
@@ -201,9 +265,9 @@ def main():
     # else:
     #     print(fit)
     # y = {}
-
-    # ydict = {tag: val for tag, val in x_fit.items() if isinstance(tag, int)}
-    # print(ydict)
+    print(x_fit.items())
+    ydict = {tag: val for tag, val in x_fit.items() if isinstance(tag, int)}
+    print(ydict)
     
     # c_t = gv_data['proton_SS'][0::1][:-1]
     # c_tpdt = gv_data['proton_SS'][0::1][1:]
@@ -240,15 +304,15 @@ def main():
     nt = np.unique([len(arr) for arr in y_fit.values()]).item()
     print(nt)
    
-    c2 = {}
-    for tag in Tags:
-        c2[tag] = cf.C_2pt(
-            tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
-    # c2_ = {tag: c2[tag].avg() for tag in c2}
-    # print(c2_)
-    c2_snk = c2['proton_PS']
-    print(c2_snk.mass)
-    c2_src = c2['proton_SS']
+    # c2 = {}
+    # for tag in Tags:
+    #     c2[tag] = cf.C_2pt(
+    #         tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
+    # # c2_ = {tag: c2[tag].avg() for tag in c2}
+    # # print(c2_)
+    # c2_snk = c2['proton_PS']
+    # print(c2_snk.mass)
+    # c2_src = c2['proton_SS']
     # nts = [c2_src.times.nt,
     #            c2_snk.times.nt,
     #            c3.times.nt]
@@ -271,14 +335,15 @@ def main():
         14: [0,15]
     }
    
-    print(x[tag]['t_range'])
-    tag = 'proton_SS'
-    tag_ = 'proton_PS'
-    fit_out = test_NPoint(tag,gv_data,prior=priors)
-    fit_ = test_NPoint_snk(tag_,gv_data,prior=priors)
+    
+    tag = 'SS'
+    tag_ = 'PS'
+    fit_out = test_NPoint(tag,corr_gv,prior=priors)
+    fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
     print(fit_)
     print(fit_out)
-    # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=True)
+    plot.plot_correlators(corr_gv,t_plot_max=20)
+    # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=False)
     fit_3pt = test_NPoint_3pt('gA_PS',ydict,fit_out,fit_)
     print(fit_3pt)
     # test_BaseTimes()
@@ -315,6 +380,7 @@ def test_NPoint(tag,data,prior): #prior
     # print(corr)
     data_ = data.pop(tag)
     c2_src = cf.C_2pt(tag, data_)
+    
     # print(len(c2_src.meff(avg=True)))
     model =get_two_point_model(c2_src)
     # t_start = c2_src.times.tmin 
@@ -331,8 +397,8 @@ def test_NPoint(tag,data,prior): #prior
     c2_src[0] = 1.0
     print(fit)
     # # Figures
-    # _ = plot.plot_correlators(data,t_plot_max=20)
-    # _ = plot.plot_effective_mass(data, 1, 16)
+    _ = plot.plot_correlators(data,t_plot_max=20)
+    _ = plot.plot_effective_mass(data, 1, 16)
     return c2_src
 
 def test_NPoint_snk(tag,data,prior):
@@ -340,7 +406,7 @@ def test_NPoint_snk(tag,data,prior):
     nt = data[tag].shape
     data_ = data.pop(tag)
     c2_snk = cf.C_2pt(tag, data_)
-    print(c2_snk)
+    # print(c2_snk)
     assert len(c2_snk) == nt[0],\
         "Unexpected len(c2_snk)"
     assert len(c2_snk[:]) == nt[0],\
@@ -355,11 +421,12 @@ def test_NPoint_snk(tag,data,prior):
     fitter = C_2pt_Analysis(c2_snk)
     fit = fitter.run_fit()
     print(fit)
-
+    _ = plot.plot_correlators(data,t_plot_max=20)
+    _ = plot.plot_effective_mass(data, 1, 16)
     return c2_snk
 
-    # _ = plot.plot_correlators(data,t_plot_max=20)
-    # _ = plot.plot_effective_mass(data, 1, 16)
+    
+    
 
 def test_NPoint_3pt(tag,data,c2_src,c2_snk):
     # nt = data[tag].shape
@@ -553,7 +620,7 @@ class C_2pt_Analysis(object):
         data = {self.tag: self.c2}
         fit = self.fitter.lsqfit(data=data, prior=prior, p0=None, **fitter_kwargs)
         self._fit = fit
-        fit.show_plots()
+        # fit.show_plots()
 
         # if fit.failed:
         #     fit = None

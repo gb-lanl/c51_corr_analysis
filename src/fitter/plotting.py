@@ -230,6 +230,28 @@ def plot_correlators(correlators_gv, show_plot=True,t_plot_min = None, t_plot_ma
     else: plt.close()
     return fit
 
+def subplots(*args,**kwargs):
+    return plt.subplots(*args,**kwargs)
+
+def plot_correlator_summary(correlators_gv,axarr=None, a_fm=None, avg=False, even_odd=False, tmax=np.inf, label=None):
+    if axarr is None:
+        _, axarr = plt.subplots(ncols=3, figsize=(15, 5))
+    ax1, ax2, ax3 = axarr
+
+    
+    plot_meff = plot_effective_mass(correlators_gv)
+
+    plot_corr = plot_correlators(correlators_gv)
+    # plot_meff(ax=ax2, a_fm=a_fm, fmt='o', avg=avg, tmax=tmax, label=label)
+    # self.plot_n2s(ax=ax3, label=label)
+
+    ax1.set_title("Correlator C(t)")
+    ax2.set_title("Effective mass")
+    ax3.set_title("Noise-to-signal [%]")
+    return axarr
+
+
+
 
 
 class eff_plots():

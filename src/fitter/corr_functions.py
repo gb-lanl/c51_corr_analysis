@@ -131,7 +131,7 @@ class C_2pt(object):
                 data=self.ydata[:self.times.tmax],
                 tp=self.times.tp,
                 tmin=self.times.tmin)
-        self._mass = gv.gvar('0.61299(35)')
+        self._mass = None
     
     def set_mass(self, mass):
         self._mass = mass
@@ -189,7 +189,19 @@ class C_2pt(object):
         return "TwoPoint[tag='{}', tmin={}, tmax={}, nt={}, mass={}]".\
             format(self.tag, self.times.tmin, self.times.tmax, self.times.nt,
                    self.mass)
-
+    def plot_corr(self, ax=None, avg=False, **kwargs):
+        """Plot the correlator on a log scale."""
+        if ax is None:
+            _, ax = plt.subplots(1, figsize=(10, 5))
+        if avg:
+            y = self.avg()
+            x = self.times.tfit[1:-1]
+        else:
+            y = self.ydata
+            x = self.times.tdata
+        ax = plt.mirror(ax=ax, x=x, y=y, **kwargs)
+        ax.set_yscale('log')
+        return ax
     
 class C_3pt(object):
     """ThreePoint correlation function."""
