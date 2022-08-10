@@ -202,6 +202,8 @@ def main():
 
     """The number of configurations present.
         Use for time history plot."""
+    
+    
 
     nconfigs = [val.shape[0] for val in data_cfg.values()]
     nconfigs = np.unique(nconfigs).item()
@@ -216,9 +218,10 @@ def main():
     #     priors = 
 
     fit_lst, p0, x_fit, y_fit = fit_funcs.get_fit(priors=priors_, states=states,x=x,y=y)
+    
     if x_fit.keys() != y_fit.keys():
         raise ValueError("keys: fit_states should be shared in both fit dicts")
-   
+
     axial_num_gv = {}
     vector_num_gv = {}
     corr_gv = {}
@@ -228,21 +231,24 @@ def main():
     vector_num_gv['PS'] = gv_data['gV_PS']
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
-    plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
-    plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
-    plot.plot_effective_mass(corr_gv)
+    # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
+    # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
+    # plot.plot_effective_mass(corr_gv)
     # plot.plot_correlator_summary(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
+    cf.effective_mass_local(corr_gv['PS'])
     # print(mass.E)
     # print(y)
     # print(y.items())
     data_chop = dict()
+    three_pt = dict()
     if args.svd_test:
         for d in y:
             if d in x_fit:
                 if d in x_fit and 'mres' not in d:
                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
-                    # print(data_chop)
+                    three_pt[d] = data_cfg[d][:,x_fit[d]['tsep']]
+        print(three_pt.keys)
    
         svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
         svdcut = svd_test.svdcut
@@ -265,9 +271,8 @@ def main():
     # else:
     #     print(fit)
     # y = {}
-    print(x_fit.items())
-    ydict = {tag: val for tag, val in x_fit.items() if isinstance(tag, int)}
-    print(ydict)
+    # print(x_fit.items())
+    
     
     # c_t = gv_data['proton_SS'][0::1][:-1]
     # c_tpdt = gv_data['proton_SS'][0::1][1:]
@@ -304,12 +309,14 @@ def main():
     nt = np.unique([len(arr) for arr in y_fit.values()]).item()
     print(nt)
    
-    # c2 = {}
-    # for tag in Tags:
-    #     c2[tag] = cf.C_2pt(
-    #         tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
-    # # c2_ = {tag: c2[tag].avg() for tag in c2}
-    # # print(c2_)
+    c2 = {}
+    for tag in Tags:
+        c2[tag] = cf.C_2pt(
+            tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
+
+         
+    # c2_ = {tag: c2[tag].avg() for tag in c2}
+    # print(c2_)
     # c2_snk = c2['proton_PS']
     # print(c2_snk.mass)
     # c2_src = c2['proton_SS']
@@ -342,7 +349,7 @@ def main():
     fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
     print(fit_)
     print(fit_out)
-    plot.plot_correlators(corr_gv,t_plot_max=20)
+    # plot.plot_correlators(corr_gv,t_plot_max=20)
     # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=False)
     fit_3pt = test_NPoint_3pt('gA_PS',ydict,fit_out,fit_)
     print(fit_3pt)
@@ -397,8 +404,8 @@ def test_NPoint(tag,data,prior): #prior
     c2_src[0] = 1.0
     print(fit)
     # # Figures
-    _ = plot.plot_correlators(data,t_plot_max=20)
-    _ = plot.plot_effective_mass(data, 1, 16)
+    # _ = plot.plot_correlators(data,t_plot_max=20)
+    # _ = plot.plot_effective_mass(data, 1, 16)
     return c2_src
 
 def test_NPoint_snk(tag,data,prior):
@@ -421,8 +428,8 @@ def test_NPoint_snk(tag,data,prior):
     fitter = C_2pt_Analysis(c2_snk)
     fit = fitter.run_fit()
     print(fit)
-    _ = plot.plot_correlators(data,t_plot_max=20)
-    _ = plot.plot_effective_mass(data, 1, 16)
+    # _ = plot.plot_correlators(data,t_plot_max=20)
+    # _ = plot.plot_effective_mass(data, 1, 16)
     return c2_snk
 
     
@@ -438,7 +445,7 @@ def test_NPoint_3pt(tag,data,c2_src,c2_snk):
     # prior = priors.vmatrix(nstates)
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
-    avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
+    # avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
     fitter = C_3pt_Analysis(c3)
     fit = fitter.run_sequential_fits(nstates)
     print(fit)

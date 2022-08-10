@@ -204,7 +204,15 @@ class C_2pt(object):
         return ax
     
 class C_3pt(object):
-    """ThreePoint correlation function."""
+    """ThreePoint correlation function.
+    .. math::
+        C_{ji}(t^{\\rm snk},t^{\\rm ins})
+        = \sum_{mn} A^{\\rm snk}_{jn}
+        e^{-E_{n} (t^{\\rm snk}-t^{\\rm ins})}
+        V^{\\rm ins}_{nm}
+        e^{-E_{m} t^{\\rm ins}}
+        \\big[ A^{\\rm src}_{im} \\big]^{T}
+    """
     def __init__(self, tag, ydict, noise_threshy=0.03, nt=None):
         self.tag = tag
         self.ydict = ydict

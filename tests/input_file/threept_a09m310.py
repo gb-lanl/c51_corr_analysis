@@ -25,7 +25,7 @@ corr_lst = {
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
-        't_snk'        :96,
+        'T'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -47,7 +47,8 @@ corr_lst = {
         'z_ylim'   :[0.055,0.26],
         # fit params
         'n_state'  :3,
-        't_snk'        :96,
+        'tsep' : 0,
+        'T'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -70,7 +71,8 @@ corr_lst = {
         # fit params
         'tsep'     : 8,
         'n_state'  :3,
-        't_snk'        :96,
+        'tsep'     :12,
+        'T'        :96,
         't_range'  :np.arange(5,48),
         't_sweep'  :range(2,28),
         'n_sweep'  :range(1,6),
@@ -91,7 +93,8 @@ corr_lst = {
         'ztype'    :'z_snk z_src',
         'z_ylim'   :[0.055,0.26],
         # fit params
-        'tsep'     : 8,  
+        'tsep'     : 12,
+        'T'        : 96,  
         'n_state'  :3,
         't_snk'        :96,
         't_range'  :np.arange(5,48),
@@ -103,7 +106,7 @@ corr_lst = {
 }
 
 prior = gv.BufferDict()
-x      = dict()
+
 N=2
 gA = gv.gvar('1.2(2)')
 prior['log(a)'] = gv.log(gv.gvar(N * ['0.3(3)']))
@@ -228,7 +231,7 @@ prior['Vno'] = gv.gvar(N * [N * ['0.0(5)']])
 #                 priors['%s_zS_%d' %(corr,n)] = gv.gvar(zS_0.mean, 2*zS_0.sdev)
 #             else:
 #                 priors['%s_zS_%d' %(corr,n)] = gv.gvar(zS_0.mean/2, zS_0.sdev)
-
+x = dict()
 for corr in corr_lst:
     for snk in corr_lst[corr]['snks']:
         sp = snk+corr_lst[corr]['srcs'][0]
@@ -236,14 +239,14 @@ for corr in corr_lst:
         x[state] = dict()
         x[state]['state'] = corr
         x[state]['z'] = corr+'_z'+snk+'_0'
-        if corr == 'gA':
-            x[state]['tsep']    = corr_lst[corr]['tsep']
-            x[state]['g_nm'] = 'gA_nm'        
-        elif x[state]['state'] == 'gV':
-            x[state]['tsep']    = corr_lst[corr]['tsep']
-            x[state]['d']    = 'dV_'+sp 
-            x[state]['g_nm'] = 'gV_nm'
-        for k in ['type', 't_sink', 'n_state', 't_range', 'eff_ylim', 'ztype']:
+        # if corr == 'gA':
+        #     x[state]['tsep']    = corr_lst[corr]['tsep']
+        #     x[state]['g_nm'] = 'gA_nm'        
+        # elif x[state]['state'] == 'gV':
+        #     x[state]['tsep']    = corr_lst[corr]['tsep']
+        #     x[state]['d']    = 'dV_'+sp 
+        #     x[state]['g_nm'] = 'gV_nm'
+        for k in ['type', 'tsep', 'n_state', 't_range', 'eff_ylim', 'ztype']:
             if k in corr_lst[corr]:
                 x[state][k] = corr_lst[corr][k]
         if 't0' in corr_lst[corr]:
