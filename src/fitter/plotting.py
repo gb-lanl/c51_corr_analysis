@@ -103,13 +103,13 @@ def plot_effective_wf(corr_gv=None, t_plot_min=None,
 
         return fig
 
-def get_effective_g00(fh_num_gv, corr_gv):
+def get_naive_effective_g00(fh_num_gv, corr_gv):
     fh_ratio_gv = {key : fh_num_gv[key] / corr_gv[key] for key in fh_num_gv.keys()}
         #return fh_num_gv
         #fh_ratio_gv = {key : fh_num_gv[key] for key in fh_num_gv.keys()}
     return {key : (np.roll(fh_ratio_gv[key], -1) - fh_ratio_gv[key])/1 for key in fh_ratio_gv.keys()}
 
-def plot_effective_g00(fh_num_gv, corr_gv,
+def plot_naive_effective_g00(fh_num_gv, corr_gv,
                     t_plot_min, t_plot_max, show_plot=True,show_fit=False,
                     observable=None):
     

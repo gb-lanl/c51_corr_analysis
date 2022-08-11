@@ -231,11 +231,15 @@ def main():
     vector_num_gv['PS'] = gv_data['gV_PS']
     corr_gv['SS'] = gv_data['proton_SS']
     corr_gv['PS'] = gv_data['proton_PS']
+
+    # preliminary plots 
+
     # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
     # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
     # plot.plot_effective_mass(corr_gv)
     # plot.plot_correlator_summary(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
+    
     cf.effective_mass_local(corr_gv['PS'])
     # print(mass.E)
     # print(y)
@@ -248,11 +252,11 @@ def main():
                 if d in x_fit and 'mres' not in d:
                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
                     three_pt[d] = data_cfg[d][:,x_fit[d]['tsep']]
-        print(three_pt.keys)
+        
    
         svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
         svdcut = svd_test.svdcut
-        print(svdcut)
+       
     #     has_svd = True
     #     if args.svdcut is not None:
     #         print('    s.svdcut = %.2e' %svd_test.svdcut)
@@ -274,87 +278,141 @@ def main():
     # print(x_fit.items())
     
     
-    # c_t = gv_data['proton_SS'][0::1][:-1]
-    # c_tpdt = gv_data['proton_SS'][0::1][1:]
-    # print(np.array((1/2)*np.log(c_t/c_tpdt)))
-    # # cf.effective_mass_local(gv_data)
-    # # ds = {key: val for key, val in gv_data.items()}
-    # cosh_m = (data[2:] + data[:-2]) / (2.0 * data[1:-1])
-    # meff = np.zeros(len(cosh_m), dtype=gv._gvarcore.GVar)
-    # # The domain of arccosh is [1, Infinity).
-    # # Set entries outside of the domain to nans.
-    # domain = (cosh_m > 1)
-    # meff[domain] = np.arccosh(cosh_m[domain])
-    # meff[~domain] = gv.gvar(np.nan)
-    # print(meff)
-    # ydict = {tag: val for tag, val in gv_data.items() if isinstance(tag, int)}
-    # print(ydict)
-
+    
     # y[t_snk] = np.ones(len(t), dtype=object)
     # denom_src = np.ones(len(t), dtype=object)
     # denom_snk = np.ones(len(t), dtype=object)
     # print(corr_gv)
     Tags = ['proton_SS','proton_PS']
-    # ydict = {}
-    # for t in Tags:
-    #     ydict = x_fit[t]['t_range']
-    # t_snks = np.sort(ydict)
-    # t_snks
-    # Tags_ff = ['gA_SS','gA_PS']
-    # tag_3pt = {'gA_SS','gA_PS'}
-    # print(data[tag].shape)
-    # print(y_fit.keys())
-    # Tags = y_fit.keys()
-    # print(Tags)
-    nt = np.unique([len(arr) for arr in y_fit.values()]).item()
-    print(nt)
-   
-    c2 = {}
-    for tag in Tags:
-        c2[tag] = cf.C_2pt(
-            tag, data_chop[tag], noise_threshy=0.03, nt=nt,skip_fastfit=True)
-
-         
-    # c2_ = {tag: c2[tag].avg() for tag in c2}
-    # print(c2_)
-    # c2_snk = c2['proton_PS']
-    # print(c2_snk.mass)
-    # c2_src = c2['proton_SS']
-    # nts = [c2_src.times.nt,
-    #            c2_snk.times.nt,
-    #            c3.times.nt]
-    # for nt in nts:
-    #         if not np.all(nt == nts[0]):
-    #             raise ValueError('tdata does not match across correlators')
-    # fitter = C_2pt_Analysis(c2_src)
-    # # fit = fitter.run_fit()
     
+    nt = np.unique([len(arr) for arr in y_fit.values()]).item()
+
     # fit = fitter.run_fit()
     # print(priors.MesonPrior())
     
     # these should go in input file 
     
-
-    ydict = {
-        8:  [0,9],
-        10: [0,11],
-        12: [0,13],
-        14: [0,15]
-    }
-   
-    
+    """ filling our "dataset" """
     tag = 'SS'
     tag_ = 'PS'
     fit_out = test_NPoint(tag,corr_gv,prior=priors)
     fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
     print(fit_)
     print(fit_out)
-    # plot.plot_correlators(corr_gv,t_plot_max=20)
-    # plot.plot_effective_mass(corr_gv,fit=fit_out,show_fit=False)
-    fit_3pt = test_NPoint_3pt('gA_PS',ydict,fit_out,fit_)
-    print(fit_3pt)
-    # test_BaseTimes()
+    t_ins = np.array(range(3)) 
+    T = np.array(range(8)) + 8
+    T_ = T.ravel().tolist()
+    
+    
+    
+    # c3_ss = test_NPoint_3pt('SS',axial_num_gv,t_ins,T,fit_out,fit_)
+    # c3 = {}
+    # c3['SS'] = c3_ss
+    # c3['PS'] = c3_ps
+
+
+     #need to watch out for signs across 3pt fcns
+    # see collect_signs_C_3pt 
+    # this should probably be a member function of C_3pt 
+    c2 = {}
+    c2['SS'] = fit_out 
+    # cf.C_2pt(
+            # tag, corr_gv, noise_threshy=0.03, nt=c3.times.nt,skip_fastfit=False)
+    c2['PS'] = fit_
+    #  cf.C_2pt( 
+            # tag_, corr_gv, noise_threshy=0.03, nt=c3.times.nt,skip_fastfit=False)
+
+    # for tag in Tags:
+    #     c2[tag] = cf.C_2pt(
+    #         tag, data_cfg[tag], noise_threshy=0.03, nt=c3.times.nt,skip_fastfit=False)
+    print(c2.keys())
+    c2_snk = c2['PS']
+    print(c2_snk.tag,"hi")
+    c2_src = c2['SS']
+    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2_snk,c2_src)
+    
+    nts = [c2_src.times.nt,
+           c2_snk.times.nt,
+           c3.times.nt]
+    
+
+    tmaxes = [c2_src.times.tmax,
+             c2_snk.times.tmax,
+             c3.times.tmax]
+    tdata = np.arange(0, min(tmaxes))
    
+    # m_src = None
+    # m_snk = None
+
+    """Estimate ground-state mass associated with source operator."""
+    m_src = c2_src.mass
+
+    """Estimate ground-state mass associated with sink operator."""
+    m_snk = c2_snk.mass
+    if m_src is not None:
+        c2_src.set_mass(m_src)
+    if m_snk is not None:
+        c2_snk.set_mass(m_snk)
+
+    """ smeared 2pt corr fcn with src,snk as members of this dict """
+    c2_avg = {tag: c2[tag].avg() for tag in c2}
+    
+    # print(c3.avg(m_src, m_snk),"hi")
+    
+    tfit = {}
+    for tag in c2:
+
+        tfit[tag] =  np.arange(c2[tag].times.tmin,c2[tag].times.tmax +1)
+    T_ = T.ravel().tolist()
+    for tsnk in T_:
+        tfit[tsnk] = np.arange(c2_src.times.tmin, tsnk - c2_snk.times.tmin)
+
+    
+    # for tag in self.tags:
+    #     tfit[tag] = np.arange(self.c2[tag].times.tmin,
+    #                             self.c2[tag].times.tmax + 1)
+    # for t_snk in self.c3.t_snks:
+    #     tfit[t_snk] = np.arange(self.c2[self.tags.src].times.tmin,
+    #                             t_snk - self.c2[self.tags.snk].times.tmin)
+    # return tfit
+
+    def compute_ratio(c2_src,c2_snk,c3_avg,T,avg=False):
+        """ compute the ratio of C_3pt(t,T) / C_2pt(t) 
+        From eq.19 in https://arxiv.org/abs/2103.05599:
+        "All matrix elements are obtained from fits to the 3pt correlators with the 
+        insertion of various components of the axial, pseudoscalar, tensor, and vector currents.
+        """
+
+        # if avg:
+            # Switch to averaged versions of all the quantites
+            # if not self._mass_override:
+        m_src = c2_src.mass
+        m_snk = c2_snk.mass
+        c3 = c3_avg
+        c2_src = c2_src.avg()
+        c2_snk = c2_snk.avg()
+        # Compute the ratio
+        r = {}
+        T = T.ravel().tolist()
+        for t_snk in T:
+            t = np.arange(t_snk)
+            denom = np.sqrt(
+                c2_src[t] * c2_snk[t_snk - t] *
+                np.exp(-m_src * t) * np.exp(-m_snk * (t_snk - t))
+            )
+            tmax = t_snk
+            
+            r[t_snk] = c3[t_snk][:tmax] * np.sqrt(2 * m_src) / denom[:tmax]
+        return r
+
+    # rat = compute_ratio(c2_src, c2_snk, c3.avg(m_src, m_snk), T)
+    # print(rat)
+
+   
+
+# def update_time():
+#     # test_BaseTimes()
+#    c
 def test_main():
     """Test the main function."""
     corr.main()
@@ -401,7 +459,7 @@ def test_NPoint(tag,data,prior): #prior
     fit = fitter.run_fit()
 
     # c2.__setitem__
-    c2_src[0] = 1.0
+    # c2_src[0] = 1.0
     print(fit)
     # # Figures
     # _ = plot.plot_correlators(data,t_plot_max=20)
@@ -414,38 +472,35 @@ def test_NPoint_snk(tag,data,prior):
     data_ = data.pop(tag)
     c2_snk = cf.C_2pt(tag, data_)
     # print(c2_snk)
-    assert len(c2_snk) == nt[0],\
-        "Unexpected len(c2_snk)"
-    assert len(c2_snk[:]) == nt[0],\
-        "Unexpected len(c2_snk[:])"
+    # assert len(c2_snk) == nt[0],\
+    #     "Unexpected len(c2_snk)"
+    # assert len(c2_snk[:]) == nt[0],\
+    #     "Unexpected len(c2_snk[:])"
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
     # n=nstates.n, no=nstates.no
     # prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
     
-    # Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
-    # nstates = Nstates(n=1, no=0)
     fitter = C_2pt_Analysis(c2_snk)
     fit = fitter.run_fit()
     print(fit)
-    # _ = plot.plot_correlators(data,t_plot_max=20)
-    # _ = plot.plot_effective_mass(data, 1, 16)
+    
     return c2_snk
-
-    
     
 
-def test_NPoint_3pt(tag,data,c2_src,c2_snk):
+def test_NPoint_3pt(tag,data,t_ins,T,c2_src,c2_snk):
     # nt = data[tag].shape
     # print(nt)
-    # ds = {key: val for key, val in data.items()}
-    c3 = cf.C_3pt(tag, data)
+
+    data = data.pop(tag)
+    c3 = cf.C_3pt(tag, data,t_ins,T)
     # print(c3.ydict)
     # avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
     # prior = priors.vmatrix(nstates)
     Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
     nstates = Nstates(n=1, no=0)
-    # avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
+    avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
+    # print(avg)
     fitter = C_3pt_Analysis(c3)
     fit = fitter.run_sequential_fits(nstates)
     print(fit)
@@ -637,11 +692,14 @@ class C_3pt_Analysis(object):
     '''
     Perform simult. fits to 2pt, 3pt fcns
     Output:
-        form factors: gA, gV  
+        form factors: gA, gV, TODO gT,gS  
     '''
-    def __init__(self, ds, positive_ff=True):
+    def __init__(self, ds,c2,c2_snk,c2_src,tags, positive_ff=True):
 
         self.ds = ds #gvar dataset
+        self.c2_snk = c2_snk
+        self.c2_src = c2_src
+        self.tags = self.c2.keys()
         self.positive_ff = positive_ff #forces form factor to be positive
         self.prior = None
         self.fits = {} #fit dict to fill 
@@ -658,9 +716,9 @@ class C_3pt_Analysis(object):
         self.prior = prior
         if tmin_override is not None:
             if tmin_override.src is not None:
-                self.ds.c2_src.times.tmin = tmin_override.src
+                self.c2_src.times.tmin = tmin_override.src
             if tmin_override.snk is not None:
-                self.ds.c2_snk.times.tmin = tmin_override.snk
+                self.c2_snk.times.tmin = tmin_override.snk
         self.fit_two_point(
             nstates=nstates,
             **fitter_kwargs)
@@ -678,13 +736,13 @@ class C_3pt_Analysis(object):
     @property
     def m_src(self):
         """Gets the mass/energy of the "source" ground state."""
-        src_tag = self.ds.tags.src
+        src_tag = self.c2_src.tag
         return self.mass(src_tag)
 
     @property
     def m_snk(self):
         """Gets the mass/energy of the "snk" ground state."""
-        snk_tag = self.ds.tags.snk
+        snk_tag = self.c2_snk.tag
         return self.mass(snk_tag)
 
     @property
@@ -695,19 +753,19 @@ class C_3pt_Analysis(object):
 
     @property
     def r_prior(self):
-        src_tag = self.ds.tags.src
+        src_tag = self.c2_src.tag
         m_src = gv.mean(self.prior[f'{src_tag}:dE'][0])
         matrix_element = self.prior['Vnn'][0, 0]
         return convert_vnn_to_ratio(m_src, matrix_element)
 
     def fit_two_point(self, nstates, **fitter_kwargs):
         """Run the fits of two-point functions."""
-        for tag in self.ds.c2:
+        for tag in self.tags:
             _nstates = nstates
-            if tag == self.ds.tags.snk:
+            if tag == self.c2_snk.tag:
               _nstates = Nstates(n=nstates.m, no=nstates.mo)
             
-            fit = C_2pt_Analysis(self.ds.c2[tag]).\
+            fit = C_2pt_Analysis(self.c2[tag]).\
                 run_fit(_nstates, **fitter_kwargs)
             if fit is None:
                 LOGGER.warning('Fit failed for two-point function %s.', tag)

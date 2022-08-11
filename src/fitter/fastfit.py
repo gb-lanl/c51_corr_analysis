@@ -19,6 +19,8 @@ LOGGER = logging.getLogger(__name__)
 
 class FastFit(object):
     """
+    Quick and dirty fit of a 2pt correlator. Taken from Lepage.
+    
     Gab(t) = sn * sum_i an[i]*bn[i] * fn(En[i], t)
                + so * sum_i ao[i]*bo[i] * fo(Eo[i], t)
     where ``(sn, so)`` is typically ``(1, -1)`` and ::
@@ -30,7 +32,7 @@ class FastFit(object):
     # Derived form Lepage's corrfitter module:
     # https://github.com/gplepage/corrfitter/blob/master/src/corrfitter/_corrfitter.py
     
-    def __init__(self, data, ampl='0(1)', dE='1(1)', E='.5(.1)', s=(1, -1),
+    def __init__(self, data, ampl='0(1)', dE='1(1)', E=None, s=(1, -1),
                  tp=None, tmin=6, svdcut=1e-6, osc=False, nterm=10):
         """
         Args:
@@ -73,7 +75,6 @@ class FastFit(object):
             # Model with a cosh
             def g(E, t):
                 return gv.exp(-E * t) + gv.exp(-E * (tp - t))
-
             if tmin > 1:
                 tmax = -tmin + 1
             else:
@@ -94,6 +95,7 @@ class FastFit(object):
 
         t = np.arange(len(data))[tmin:tmax]
         data = data[tmin:tmax]
+        print(data)
 
         if not t.size:
             raise ValueError(
@@ -121,7 +123,6 @@ class FastFit(object):
             Eo = np.cumsum(dEo)
             for aj, Ej in zip(ao, Eo):
                 d_data += so * aj * g(Ej, t) * (-1) ** t
-
         # Marginalize over the exicted states
         data = data - d_data
         self.marginalized_data = data

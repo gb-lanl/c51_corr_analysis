@@ -105,9 +105,11 @@ corr_lst = {
 
 }
 
+# we construct priors as Lepage does, plays nicely with corrfitter
+
 prior = gv.BufferDict()
 
-N=2
+N=1
 gA = gv.gvar('1.2(2)')
 prior['log(a)'] = gv.log(gv.gvar(N * ['0.3(3)']))
 prior['log(dE)'] =  gv.log(gv.gvar(N * ['0.5(5)']))

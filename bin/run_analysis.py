@@ -1,4 +1,5 @@
 import sys 
+from fitter import *
 
 
 def main():
@@ -26,6 +27,8 @@ def main():
     lg.set_log_level(args.log_level)
     args = vars(args)
     del args['log_level']
+
+    
 
 if __name__ == '__main__':
     main()

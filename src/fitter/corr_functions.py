@@ -114,7 +114,7 @@ class C_2pt(object):
     simple two-point correlation function
     Todo 
     '''
-    def __init__(self, tag, ydata, noise_threshy=None, skip_fastfit=False, **time_kwargs):
+    def __init__(self, tag, ydata, noise_threshy=0.03, skip_fastfit=False, **time_kwargs):
         self.tag = tag
         self.ydata = ydata
         self.noise_threshy = noise_threshy
@@ -122,7 +122,7 @@ class C_2pt(object):
         if tdata is None:
             tdata = np.arange(len(ydata))
         self.times = TimeContainer(tdata=tdata, **time_kwargs)
-        self.times.tmax = _infer_tmax(ydata, noise_threshy=None)
+        self.times.tmax = _infer_tmax(ydata, noise_threshy)
         # Estimate the ground-state energy and amplitude
         if skip_fastfit:
             self.fastfit = None
@@ -213,12 +213,14 @@ class C_3pt(object):
         e^{-E_{m} t^{\\rm ins}}
         \\big[ A^{\\rm src}_{im} \\big]^{T}
     """
-    def __init__(self, tag, ydict, noise_threshy=0.03, nt=None):
+    def __init__(self, tag, ydata,t_ins,T, noise_threshy=0.03, nt=None):
         self.tag = tag
-        self.ydict = ydict
-        self._verify_ydict(nt)
+        self.ydata = ydata
+        self.t_ins = t_ins
+        self.T = T
+        # self._verify_ydict(nt)
         self.noise_threshy = noise_threshy
-        tmp = list(self.values())[0]  # safe since we verified ydict
+        tmp = self.ydata 
         if nt is None:
             tdata = np.arange(len(tmp))
         else:
@@ -229,22 +231,28 @@ class C_3pt(object):
     def __str__(self):
         return "ThreePoint[tag='{}', tmin={}, tmax={}, nt={}, t_snks={}]".\
             format(self.tag, self.times.tmin, self.times.tmax,
-                   self.times.nt, sorted(list(self.t_snks)))
+                   self.times.nt, sorted(list(self.T)))
 
-    def _verify_ydict(self, nt=None):
-        for t_sink in self.ydict:
-            if not isinstance(t_sink, int):
-                raise TypeError("t_sink keys must be integers.")
-        if nt is None:
-            try:
-                np.unique([len(arr) for arr in self.ydict.values()]).item()
-            except ValueError as _:
-                raise ValueError("Values in ydict must have same length.")
+    # def _confirm_real(self, nt=None):
+    #     """
+    #      Confirms that a value is a real numeric type
+    #      :returns: `True` if real, else False
+    #     """
+    #     for t in self.T:
+    #         if not isinstance(t, (int,float,np.int64,np.float32)):
+    #             raise TypeError("t_sink keys must be a real numerical type.")
+    #     if nt is None:
+    #         try:
+    #             np.unique([len(arr) for arr in self.T.values()]).item()
+    #         except ValueError as _:
+    #             raise ValueError("Values in t_dict must be of equal length.")
 
 
     def avg(self, m_src, m_snk):
         """
         Computes a time-slice-averaged three-point correlation function.
+        Combines the correlator BOTH at consecutive time slices and 
+        consecutive src-snk seps 
         Args:
             m_src, m_snk: the masses of the ground states
                 associated with the source at time t=0 and and the sink at
@@ -263,46 +271,51 @@ class C_3pt(object):
             )
 
         c3bar = {}
-        t_snks = np.sort(np.array(self.t_snks))
-        
-        for T in t_snks:
-            c3 = self.ydict[T]  # C(t, T)
-            t = np.arange(len(c3))
-            ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(T-t))
-            tmp = _combine(ratio)
-            c3bar[T] = tmp * np.exp(-m_src*t) * np.exp(-m_snk*(T-t))
+        # t_snks = np.sort(np.array(self.t_dict))
+        # if self._confirm_real(self.t_ins):
+        #     if self._confirm_real(self.T):
+        for ts in self.T:
+            for ti in self.t_ins:
+                # print(ts,ti)
+                c3 = self.ydata  # C(t, T)
+               
+                # t = np.arange(len(c3))
+                ratio = c3 / np.exp(-m_src*ti) / np.exp(-m_snk*(ts-ti))
+                tmp = _combine(ratio)
+                
+                c3bar[ts] = tmp * np.exp(-m_src*ti) * np.exp(-m_snk*(ts-ti))
 
         return c3bar
 
-    @property
-    def t_snks(self):
-        """Returns the sink times T."""
-        return list(self.keys())
+    # @property
+    # def t_snks(self):
+    #     """Returns the sink times T."""
+    #     return list(self.keys())
 
-    def __getitem__(self, key):
-        return self.ydict[key]
+    # def __getitem__(self, key):
+    #     return self.t_dict[key]
 
-    def __setitem__(self, key, value):
-        self.ydict[key] = value
+    # def __setitem__(self, key, value):
+    #     self.t_dict[key] = value
 
-    def __len__(self):
-        return len(self.ydict)
+    # def __len__(self):
+    #     return len(self.t_dict)
 
-    def __iter__(self):
-        for key in self.keys():
-            yield key
+    # def __iter__(self):
+    #     for key in self.keys():
+    #         yield key
 
-    def items(self):
-        """items from ydict"""
-        return self.ydict.items()
+    # def items(self):
+    #     """items from t_dict"""
+    #     return self.t_dict.items()
 
-    def keys(self):
-        """keys from ydict"""
-        return self.ydict.keys()
+    # def keys(self):
+    #     """keys from t_dict"""
+    #     return self.t_dict.keys()
 
-    def values(self):
-        """values from ydict"""
-        return self.ydict.values()
+    # def values(self):
+    #     """values from t_dict"""
+    #     return self.t_dict.values()
 
 class CorrFunction:
 
