@@ -329,7 +329,7 @@ def main():
     c2_snk = c2['PS']
     print(c2_snk.tag,"hi")
     c2_src = c2['SS']
-    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2_snk,c2_src)
+    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2,c2_snk,c2_src)
     
     nts = [c2_src.times.nt,
            c2_snk.times.nt,
@@ -488,7 +488,7 @@ def test_NPoint_snk(tag,data,prior):
     return c2_snk
     
 
-def test_NPoint_3pt(tag,data,t_ins,T,c2_src,c2_snk):
+def test_NPoint_3pt(tag,data,t_ins,T,c2,c2_src,c2_snk):
     # nt = data[tag].shape
     # print(nt)
 
@@ -501,7 +501,7 @@ def test_NPoint_3pt(tag,data,t_ins,T,c2_src,c2_snk):
     nstates = Nstates(n=1, no=0)
     avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
     # print(avg)
-    fitter = C_3pt_Analysis(c3)
+    fitter = C_3pt_Analysis(c3,c2,c2_snk,c2_src,tags=tag)
     fit = fitter.run_sequential_fits(nstates)
     print(fit)
     return c3
@@ -699,6 +699,7 @@ class C_3pt_Analysis(object):
         self.ds = ds #gvar dataset
         self.c2_snk = c2_snk
         self.c2_src = c2_src
+        self.c2     = c2
         self.tags = self.c2.keys()
         self.positive_ff = positive_ff #forces form factor to be positive
         self.prior = None
