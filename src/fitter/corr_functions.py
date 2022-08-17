@@ -287,7 +287,7 @@ class C_3pt(object):
 
         return c3bar
 
-    # @property
+    @property
     # def t_snks(self):
     #     """Returns the sink times T."""
     #     return list(self.keys())
@@ -298,8 +298,8 @@ class C_3pt(object):
     # def __setitem__(self, key, value):
     #     self.t_dict[key] = value
 
-    # def __len__(self):
-    #     return len(self.t_dict)
+    def __len__(self):
+        return len(self.ydata)
 
     # def __iter__(self):
     #     for key in self.keys():
@@ -309,9 +309,9 @@ class C_3pt(object):
     #     """items from t_dict"""
     #     return self.t_dict.items()
 
-    # def keys(self):
-    #     """keys from t_dict"""
-    #     return self.t_dict.keys()
+    def keys(self):
+        """keys from t_dict"""
+        return self.T.keys()
 
     # def values(self):
     #     """values from t_dict"""

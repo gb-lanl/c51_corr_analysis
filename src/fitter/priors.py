@@ -244,6 +244,7 @@ class MesonPrior(BasePrior):
     """
 
     def __init__(self, n=1, no=0, amps=None, tag=None, ffit=None, **kwargs):
+        print(n,no)
         if n < 1:
             raise ValueError("Must have n_decay >=1.")
         if no < 0:
@@ -328,54 +329,60 @@ class MesonPriorPDG(BasePrior):
         super(MesonPriorPDG, self).__init__(mapping=prior, **kwargs)
 
 
-class FormFactorPrior(BasePrior):
+class JointFitPrior(BasePrior):
     """
     Prior for joint fits to extract form factors.
     """
 
-    def __init__(self, nstates, ds=None, positive_ff=True, **kwargs):
-        if ds is None:
-            ds = {}
+    def __init__(self, nstates, c2=None, positive_ff=True, **kwargs):
+        tags = c2.keys()
+        if c2 is None:
+            c2 = {}
+        
         else:
-            FormFactorPrior._verify_tags(ds.tags)
+            JointFitPrior._verify_tags(tags)
         self.positive_ff = positive_ff
-        super(FormFactorPrior, self).__init__(
-                mapping=self._build(nstates, ds),
+        super(JointFitPrior, self).__init__(
+                mapping=self._build(nstates, c2),
                 **kwargs)
 
     @staticmethod
     def _verify_tags(tags):
         """Verify that the tags (from nstates) are supported."""
         tags = set(tags)
+        print(tags)
         valid_tags = [
-            ['gA_SS'],
-            ['gA_PS'],
-            ['gV_SS'],
-            ['gV_PS']
+            ['SS'],
+            ['PS'],
 
         ]
-        for possibility in valid_tags:
-            if tags == set(possibility):
+        for k in valid_tags:
+            
+            
+            if tags == set(k):
                 return
-        raise ValueError("Unrecognized tags in FormFactorPrior")
+        # raise ValueError("Unrecognized tags in JointFitPrior")
 
-    def _build(self, nstates, ds):
+    def _build(self, nstates, c2):
         """Build the prior dict."""
-        prior = FormFactorPrior._make_meson_prior(nstates, ds)
-        tmp = self._make_vmatrix_prior(nstates, ds)
+        prior = JointFitPrior._make_meson_prior(nstates, c2)
+        tmp = self._make_vmatrix_prior(nstates, c2)
         for key in tmp:
             prior[key] = tmp[key]
         return prior
 
     @staticmethod
-    def _make_meson_prior(nstates, ds):
+    def _make_meson_prior(nstates, c2):
         """Build prior associated with the meson two-point functions."""
-        tags = ds.tags
+        tags = c2.keys()
+        c2_src = c2['SS']
+        c2_snk = c2['PS']
+
         meson_priors = [
             MesonPrior(nstates.n, nstates.no,
-                       tag=tags.src, ffit=ds.c2_src.fastfit),
+                       tag='SS', ffit=c2_src.fastfit),
             MesonPrior(nstates.m, nstates.mo,
-                       tag=tags.snk, ffit=ds.c2_snk.fastfit),
+                       tag='PS', ffit=c2_snk.fastfit),
         ]
         prior = {}
         for meson_prior in meson_priors:
@@ -383,16 +390,17 @@ class FormFactorPrior(BasePrior):
                 prior[key] = value
         return prior
 
-    def _make_vmatrix_prior(self, nstates, ds):
+    def _make_vmatrix_prior(self, nstates, c2):
         """Build prior for the 'mixing matrices' Vnn, Vno, Von, and Voo."""
         def _abs(val):
             return val * np.sign(val)
+        c2_snk = c2['PS'] #THIS OBJ SHOULD JUST BE MEMBER OF C2
         mass = None
         n = nstates.n
         no = nstates.no
         m = nstates.m
         mo = nstates.mo
-        mass = ds[ds.tags.src].fastfit.E
+        mass = c2_snk.fastfit.E
 
         # General guesses
         tmp_prior = {}

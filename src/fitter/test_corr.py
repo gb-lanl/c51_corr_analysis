@@ -20,7 +20,7 @@ from nucleon_elastic_ff.data.h5io import get_dsets
 
 
 SVDCUT = 0.002
-Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
+Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(2, 1, 2, 1))
 def main():
     parser = argparse.ArgumentParser(
         description='Perform analysis of two-point correlation function')
@@ -233,6 +233,7 @@ def main():
     corr_gv['PS'] = gv_data['proton_PS']
 
     # preliminary plots 
+    # plot.get_naive_effective_g00(axial_num_gv, corr_gv)
 
     # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
     # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
@@ -297,8 +298,8 @@ def main():
     tag_ = 'PS'
     fit_out = test_NPoint(tag,corr_gv,prior=priors)
     fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
-    print(fit_)
-    print(fit_out)
+    # print(fit_)
+    # print(fit_out)
     t_ins = np.array(range(3)) 
     T = np.array(range(8)) + 8
     T_ = T.ravel().tolist()
@@ -325,11 +326,13 @@ def main():
     # for tag in Tags:
     #     c2[tag] = cf.C_2pt(
     #         tag, data_cfg[tag], noise_threshy=0.03, nt=c3.times.nt,skip_fastfit=False)
-    print(c2.keys())
+    
     c2_snk = c2['PS']
-    print(c2_snk.tag,"hi")
     c2_src = c2['SS']
+    # print(c2_src.fastfit.E,"mass")
     c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2,c2_snk,c2_src)
+    # get_model(c2, c3, 'SS', nstates)
+    # print(len(c3),"HELLO")
     
     nts = [c2_src.times.nt,
            c2_snk.times.nt,
@@ -361,7 +364,7 @@ def main():
     
     tfit = {}
     for tag in c2:
-
+        # print(tag)
         tfit[tag] =  np.arange(c2[tag].times.tmin,c2[tag].times.tmax +1)
     T_ = T.ravel().tolist()
     for tsnk in T_:
@@ -376,21 +379,21 @@ def main():
     #                             t_snk - self.c2[self.tags.snk].times.tmin)
     # return tfit
 
-    def compute_ratio(c2_src,c2_snk,c3_avg,T,avg=False):
+    def compute_ratio(c2_src,c2_snk,c3,c3_avg,T,avg=True):
         """ compute the ratio of C_3pt(t,T) / C_2pt(t) 
         From eq.19 in https://arxiv.org/abs/2103.05599:
         "All matrix elements are obtained from fits to the 3pt correlators with the 
         insertion of various components of the axial, pseudoscalar, tensor, and vector currents.
         """
-
-        # if avg:
-            # Switch to averaged versions of all the quantites
-            # if not self._mass_override:
         m_src = c2_src.mass
         m_snk = c2_snk.mass
-        c3 = c3_avg
-        c2_src = c2_src.avg()
-        c2_snk = c2_snk.avg()
+
+        if avg:
+            # Switch to averaged versions of all the quantites
+            # if not self._mass_override:
+            c3 = c3_avg
+            c2_src = c2_src.avg()
+            c2_snk = c2_snk.avg()
         # Compute the ratio
         r = {}
         T = T.ravel().tolist()
@@ -401,12 +404,64 @@ def main():
                 np.exp(-m_src * t) * np.exp(-m_snk * (t_snk - t))
             )
             tmax = t_snk
-            
+            print(c3[t_snk][:tmax],"c3 test")
             r[t_snk] = c3[t_snk][:tmax] * np.sqrt(2 * m_src) / denom[:tmax]
         return r
 
-    # rat = compute_ratio(c2_src, c2_snk, c3.avg(m_src, m_snk), T)
-    # print(rat)
+    @property
+    def c3_smeared(m_src,m_snk):
+        return c3.avg(m_src, m_snk)
+    print(c3_smeared)
+    rat = compute_ratio(c2_src, c2_snk,c3, c3.avg(m_src, m_snk), T)
+    print(rat.items(),"testing")
+
+    # deal with varying signs in C_3pt 
+    def fetch_sign(gv_data):
+        signs = np.sign(gv_data)
+        if not hasattr(signs, '__len__'):
+            return signs
+        if not np.all(signs == signs[0]):
+            raise ValueError(f"Sign mismatch.")
+        return signs[0]
+    
+
+    def sign_(rat):
+        signs = []
+        for t_snk, rat in rat.items():
+            try:
+                signs.append(fetch_sign(rat[1:t_snk - 1]))
+            except ValueError:
+                raise ValueError(
+                    f"Sign mismatch for t_snk={t_snk}. "
+                     "Please specify by hand at initalization.")
+        # Reduce to a single sign
+        try:
+            return fetch_sign(signs)
+        except ValueError:
+            raise ValueError(
+                f"Sign mismatch across t_snks, found {signs}. "
+                 "Please specify by hand at initalization.")
+
+    def get_ff_plateau(rat):
+        plateau = float('-inf')
+        sign = []
+        sign = sign_(rat)
+        for t_snk, rbar in rat.items():
+            local_max = max(sign * gv.mean(rbar[1:t_snk - 1]))
+            plateau = max(plateau, local_max)
+        return sign * plateau
+
+    
+    def guess(rat):
+        return get_ff_plateau(rat)
+
+    guess(rat)
+
+    def get_fit_keys(c2):
+        """Get the keys of the two- and three-point correlators."""
+        return list(c2.keys())
+
+    print(get_fit_keys(c2))
 
    
 
@@ -450,8 +505,8 @@ def test_NPoint(tag,data,prior): #prior
     model =get_two_point_model(c2_src)
     # t_start = c2_src.times.tmin 
     # t_end = c2_src.times.tmax
-    Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
-    nstates = Nstates(n=1, no=0)
+    # Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
+    nstates = Nstates(n=2, no=1)
     # prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
     fitter = C_2pt_Analysis(c2_src)
     # fit = fitter.run_fit()
@@ -461,9 +516,7 @@ def test_NPoint(tag,data,prior): #prior
     # c2.__setitem__
     # c2_src[0] = 1.0
     print(fit)
-    # # Figures
-    # _ = plot.plot_correlators(data,t_plot_max=20)
-    # _ = plot.plot_effective_mass(data, 1, 16)
+   
     return c2_src
 
 def test_NPoint_snk(tag,data,prior):
@@ -476,8 +529,8 @@ def test_NPoint_snk(tag,data,prior):
     #     "Unexpected len(c2_snk)"
     # assert len(c2_snk[:]) == nt[0],\
     #     "Unexpected len(c2_snk[:])"
-    Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
-    nstates = Nstates(n=1, no=0)
+    # Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
+    nstates = Nstates(n=2, no=1)
     # n=nstates.n, no=nstates.no
     # prior = priors.MesonPriorPDG(nstates, 'pi',a_fm = .09)
     
@@ -497,13 +550,14 @@ def test_NPoint_3pt(tag,data,t_ins,T,c2,c2_src,c2_snk):
     # print(c3.ydict)
     # avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
     # prior = priors.vmatrix(nstates)
-    Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
-    nstates = Nstates(n=1, no=0)
+    # Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(1, 0, 0, 0))
+    nstates = Nstates(n=2, no=1,m=1,mo=0)
+    # print(nstates)
     avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
     # print(avg)
-    fitter = C_3pt_Analysis(c3,c2,c2_snk,c2_src,tags=tag)
-    fit = fitter.run_sequential_fits(nstates)
-    print(fit)
+    # fitter = C_3pt_Analysis(data,c2,c2_snk,c2_src,tags=tag)
+    # fit = fitter.run_sequential_fits(nstates)
+    # print(fit)
     return c3
 
 def get_two_point_model(two_point, osc=True):
@@ -594,17 +648,19 @@ def get_three_point_model(t_snk, tfit, tdata, nstates, tags=None, constrain=Fals
 
     return model
 
-def get_model(ds, tag, nstates, constrain=False):
+def get_model(c2,c3, tag, nstates, constrain=False):
     """Gets a corrfitter model"""
     # TODO implement constrain 
-    if isinstance(ds[tag], cf.C_2pt):
-        osc = bool(nstates.no) if tag == ds.tags.src else bool(nstates.mo)
-        return get_two_point_model(ds[tag], osc)
+    print(c2[tag])
+    if isinstance(c2[tag], cf.C_2pt):
+        osc = bool(nstates.no) if tag == 'SS' else bool(nstates.mo)
+        return get_two_point_model(c2[tag], osc)
     if isinstance(tag, int):
         t_snk = tag
-        tdata = ds.c3.times.tdata
-        return get_three_point_model(t_snk, ds.tfit[t_snk], tdata, nstates,
+        tdata = c3.times.tdata
+        return get_three_point_model(t_snk, c3.tfit[t_snk], tdata, nstates,
                                      constrain=constrain)
+
 
 def count_nstates(params, key_map=None, tags=''):
     """
@@ -714,7 +770,10 @@ class C_3pt_Analysis(object):
         """
         First runs two-point functions, Then runs the simult fit.
         """
-        self.prior = prior
+        if prior is None:
+            self.prior = priors.JointFitPrior(nstates,self.c2)
+        else:
+            self.prior = prior
         if tmin_override is not None:
             if tmin_override.src is not None:
                 self.c2_src.times.tmin = tmin_override.src
@@ -723,7 +782,7 @@ class C_3pt_Analysis(object):
         self.fit_two_point(
             nstates=nstates,
             **fitter_kwargs)
-        self.fit_three_point(
+        self.fit_simult(
             nstates=nstates,
             chain=chain,
             constrain=constrain,
@@ -765,6 +824,7 @@ class C_3pt_Analysis(object):
             _nstates = nstates
             if tag == self.c2_snk.tag:
               _nstates = Nstates(n=nstates.m, no=nstates.mo)
+              print(_nstates,"nstate")
             
             fit = C_2pt_Analysis(self.c2[tag]).\
                 run_fit(_nstates, **fitter_kwargs)
@@ -791,13 +851,13 @@ class C_3pt_Analysis(object):
 
         # Handle models
         models_list = []
-        for tag in self.ds:
-            model = get_model(self.ds, tag, nstates,constrain)
+        for tag in self.c2:
+            model = get_model(self.c2,self.ds, tag, nstates,constrain)
             if model is not None:
                 models_list.append(model)
 
         # Abort if too few models found; There should be a model corresponding to each key in dataset
-        if len(models_list) != len(set(self.ds.keys())):
+        if len(models_list) != len(set(self.c2.keys())):
             self.fitter = None
             fit = None
             LOGGER.warning('Insufficient models found. Skipping joint fit.')
@@ -811,7 +871,7 @@ class C_3pt_Analysis(object):
             _lsqfit = self.fitter.lsqfit
         fit = _lsqfit(data=self.ds, **fitter_kwargs)
         self.fits['full'] = fit
-        if fit.failed:
+        if fit is None:
             LOGGER.warning('Full joint fit failed.')
         else:
             self.ds.set_masses(fit.p['proton_SS:dE'][0],
