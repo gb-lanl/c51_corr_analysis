@@ -204,7 +204,9 @@ class C_2pt(object):
         return ax
     
 class C_3pt(object):
-    """ThreePoint correlation function.
+    """ThreePoint correlation function. Keys in ydata should be integer values,
+    representing the Tau value/tsep. 
+    Returns C_3pt object 
     .. math::
         C_{ji}(t^{\\rm snk},t^{\\rm ins})
         = \sum_{mn} A^{\\rm snk}_{jn}
@@ -213,7 +215,8 @@ class C_3pt(object):
         e^{-E_{m} t^{\\rm ins}}
         \\big[ A^{\\rm src}_{im} \\big]^{T}
     """
-    def __init__(self, tag, ydata,t_ins,T, noise_threshy=0.03, nt=None):
+    def __init__(self, tag, ydata,t_ins=None,T=None, noise_threshy=0.03, nt=None):
+        #TODO prompt user override with t_ins and T from input file if keys not integers 
         self.tag = tag
         self.ydata = ydata
         self.t_ins = t_ins

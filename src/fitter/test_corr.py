@@ -17,7 +17,7 @@ import fitter.fastfit as prelim #LePage's preliminary corrfitter to generate p0
 import fitter.priors as priors 
 sys.path.insert(0, '/home/gbradley/nucleon_elastic_FF')
 from nucleon_elastic_ff.data.h5io import get_dsets 
-
+from IPython import embed
 
 SVDCUT = 0.002
 Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(2, 1, 2, 1))
@@ -331,6 +331,7 @@ def main():
     c2_src = c2['SS']
     # print(c2_src.fastfit.E,"mass")
     c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2,c2_snk,c2_src)
+   
     # get_model(c2, c3, 'SS', nstates)
     # print(len(c3),"HELLO")
     
@@ -369,7 +370,7 @@ def main():
     T_ = T.ravel().tolist()
     for tsnk in T_:
         tfit[tsnk] = np.arange(c2_src.times.tmin, tsnk - c2_snk.times.tmin)
-
+    embed()
     
     # for tag in self.tags:
     #     tfit[tag] = np.arange(self.c2[tag].times.tmin,
@@ -415,21 +416,33 @@ def main():
     rat = compute_ratio(c2_src, c2_snk,c3, c3.avg(m_src, m_snk), T)
     print(rat.items(),"testing")
 
+
+    def ensure_real(data):
+        mean = gv.mean(data)
+        sdev = gv.sdev(data)
+        valid = np.isfinite(mean) & np.isfinite(sdev)
+        return data[valid]
+    
     # deal with varying signs in C_3pt 
-    def fetch_sign(gv_data):
-        signs = np.sign(gv_data)
+    def fetch_sign(data):
+        signs = np.sign(data)
         if not hasattr(signs, '__len__'):
             return signs
         if not np.all(signs == signs[0]):
             raise ValueError(f"Sign mismatch.")
         return signs[0]
+
+   
+    # embed()
+
+    
     
 
     def sign_(rat):
         signs = []
-        for t_snk, rat in rat.items():
+        for t_snk, r in rat.items():
             try:
-                signs.append(fetch_sign(rat[1:t_snk - 1]))
+                signs.append(fetch_sign(ensure_real(r[1:t_snk - 1])))
             except ValueError:
                 raise ValueError(
                     f"Sign mismatch for t_snk={t_snk}. "
