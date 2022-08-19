@@ -22,13 +22,26 @@ def main():
 
 
     parser.add_argument('filename', help = "The filename containing the data")
+    pasrser.add_argument('n_states override', help = "override given n_states in input file here \n")
+    pasrser.add_argument('--Nt', 
+            help = "dont compute Nt from data, use this one. WARNING: correlator \n"
+    "will not be symmetrized")
+    pasrser.add_argument('--log-level', default = "INFO",
+            help = "log level options: WARN, INFO, PROGRESS, DETAILS, DEBUG, NONE \n")
+    pasrser.add_argument('n_states override', help = "override given n_states in input file here \n")
+    
+
+
+
+
+
     args = parser.parse_args()
 
     lg.set_log_level(args.log_level)
     args = vars(args)
     del args['log_level']
 
-    
+
 
 if __name__ == '__main__':
     main()

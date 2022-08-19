@@ -9,6 +9,8 @@ import corrfitter
 import collections
 import numpy as np
 import lsqfit
+import re
+import pandas as pd
 
 import fitter.corr_functions as cf 
 import fitter.load_data as ld
@@ -21,6 +23,8 @@ from IPython import embed
 
 SVDCUT = 0.002
 Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(2, 1, 2, 1))
+Buffer = collections.namedtuple('Buffer', ["channel", "smearing","charge"])
+
 def main():
     parser = argparse.ArgumentParser(
         description='Perform analysis of two-point correlation function')
@@ -200,6 +204,9 @@ def main():
     else:
         states = fp.fit_states
 
+
+
+    
     """The number of configurations present.
         Use for time history plot."""
     
@@ -213,6 +220,10 @@ def main():
     # print(ds)
     x,y,n_states,priors_  = ld.make_fit_params(fp=fp,states=states,gv_data=gv_data)
     fit_funcs = cf.FitCorr()
+
+    def display_buffers(n_states):
+        buffers = []
+        # if 
 
      # if args.prior_override:
     #     priors = 
@@ -252,7 +263,7 @@ def main():
             if d in x_fit:
                 if d in x_fit and 'mres' not in d:
                     data_chop[d] = data_cfg[d][:,x_fit[d]['t_range']]
-                    three_pt[d] = data_cfg[d][:,x_fit[d]['tsep']]
+                    # three_pt[d] = data_cfg[d][:,x_fit[d]['tsep']]
         
    
         svd_test = gv.dataset.svd_diagnosis(data_chop, nbstrap=args.svd_nbs)
@@ -330,7 +341,116 @@ def main():
     c2_snk = c2['PS']
     c2_src = c2['SS']
     # print(c2_src.fastfit.E,"mass")
+    h5fname = '/home/gbradley/c51_corr_analysis/tests/data/a09m135_s_avg_srcs0-15.h5'
+    pattern = "(?P<parity>proton|proton\_np)"
+    pattern += "_(?P<isospin>DD|UU)"
+    pattern += "_(?P<spin>dn_dn|up_up)"
+    pattern += "_tsep_[\-]*(?P<tsep>[0-9]+)"
+    pattern += ".*(?P<current>A3|V4).*cfgs\_srcs"
+    columns = ["nucleon", "current", "tsep", "cfg", "t", "isospin", "parity", "spin", "corr"]
+    data_frames = []
+
+    with h5py.File(h5fname, "r") as h5f:
+        dsets = get_dsets(h5f)
+        # print(dsets)
+
+        for key, dset in dsets.items():
+            match = re.search(pattern, key)
+            if match:
+                info = match.groupdict()
+
+                nucleon_parity = info.pop("parity").split("_")
+                info["nucleon"] = nucleon_parity[0]
+                info["parity"] = -1 if len(nucleon_parity) == 2 else 1
+                
+                isospin = info.pop("isospin")
+                info["isospin"] = 1 if isospin == "UU" else -1            
+
+                current_key = key.replace("cfgs_srcs", "local_curr")
+                curr_dset = h5f[current_key]
+
+                cfgs = dset[:, 0]
+                corr = (
+                    curr_dset[()].real if info["current"] in ["V4"] else curr_dset[()].imag
+                )
+                ts = range(corr.shape[-1])
+
+                tmp_df = (
+                    pd.DataFrame(index=cfgs, columns=ts, data=corr)
+                    .unstack()
+                    .reset_index()
+                    .rename(columns={"level_0": "t", "level_1": "cfg", 0: "corr"})
+                )
+                for key, val in info.items():
+                    tmp_df[key] = val
+                data_frames.append(tmp_df.astype({"tsep": int}))
+
+
+
+    df = pd.concat(
+        data_frames, 
+        ignore_index=True, 
+    ).reindex(columns, axis=1).sort_values(columns).reset_index(drop=True)
+    df.to_csv('out.csv')
+
+    spin_avg_df = df.groupby(
+    ["nucleon", "current", "tsep", "cfg", "t", "isospin", "parity"], as_index=False
+    )["corr"].mean()
+
+    # spin_avg_df.head()
+    tmp = spin_avg_df.copy()
+    tmp["corr"] *= tmp["parity"]
+    spin_parity_avg_df = tmp.groupby(
+        ["nucleon", "current", "tsep", "cfg", "t", "isospin",  ], as_index=False
+    )[["corr"]].mean()
+
+    # spin_parity_avg_df.head()
+    tmp = spin_parity_avg_df.copy()
+    tmp["corr"] *= tmp["isospin"]
+    isospin_spin_parity_avg_df = (
+        tmp.groupby(["nucleon", "current", "tsep", "cfg",  "t"], as_index=False)["corr"]
+        .sum()
+    )
+    isospin_spin_parity_avg_df.head()
+
+    def avg_data(arg):
+        corr_avg = gv.dataset.avg_data(
+            arg.pivot(index="cfg", columns="t", values="corr").values
+        )
+        return pd.Series(corr_avg)
+
+
+    group = isospin_spin_parity_avg_df.groupby(["nucleon", "current", "tsep"])
+    corr_df = (
+        group.apply(avg_data)
+        .reset_index(level=-1)
+        .rename(columns={"level_3": "t", 0: "corr"})
+        .reset_index()
+        .set_index(["nucleon", "current", "tsep", "t"])
+    )
+    # print(corr_df)
+    corr_out = corr_df.to_dict(orient='tight')
+    # print(corr_out)
+    test = corr_df.loc[('proton', 'A3'),'corr']
+    # test_src = 
+    out = test.to_dict()
+    ydict = {tag: val for tag,val in out.items() if isinstance(tag,tuple)}
+    # print(ydict)
+    # t_snk = list()
+    # for item in out.keys():
+    #     if item[0] not in t_snk:
+    #         t_snk.append(item[0])
+    # print(t_snk)
+   
+    
+
+        
+    # import fitter.corr_functions as cf 
+    # c3 = cf.C_3pt(tag='proton',ydata_3pt=ydict)
+    # print(c3)
+
     c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2,c2_snk,c2_src)
+    print(c3)
    
     # get_model(c2, c3, 'SS', nstates)
     # print(len(c3),"HELLO")
@@ -360,6 +480,10 @@ def main():
 
     """ smeared 2pt corr fcn with src,snk as members of this dict """
     c2_avg = {tag: c2[tag].avg() for tag in c2}
+    print(c2_avg)
+
+    embed()
+
     
     # print(c3.avg(m_src, m_snk),"hi")
     
@@ -367,10 +491,11 @@ def main():
     for tag in c2:
         # print(tag)
         tfit[tag] =  np.arange(c2[tag].times.tmin,c2[tag].times.tmax +1)
-    T_ = T.ravel().tolist()
-    for tsnk in T_:
-        tfit[tsnk] = np.arange(c2_src.times.tmin, tsnk - c2_snk.times.tmin)
-    embed()
+    print(tfit)
+    # T_ = T.ravel().tolist()
+    # for tsnk in c3.T:
+    #     tfit[tsnk] = np.arange(c2_src.times.tmin, tsnk - c2_snk.times.tmin)
+
     
     # for tag in self.tags:
     #     tfit[tag] = np.arange(self.c2[tag].times.tmin,
@@ -380,7 +505,7 @@ def main():
     #                             t_snk - self.c2[self.tags.snk].times.tmin)
     # return tfit
 
-    def compute_ratio(c2_src,c2_snk,c3,c3_avg,T,avg=True):
+    def compute_ratio(c2_src,c2_snk,c3,c3_avg,T,avg=True,tau_override=False):
         """ compute the ratio of C_3pt(t,T) / C_2pt(t) 
         From eq.19 in https://arxiv.org/abs/2103.05599:
         "All matrix elements are obtained from fits to the 3pt correlators with the 
@@ -388,18 +513,22 @@ def main():
         """
         m_src = c2_src.mass
         m_snk = c2_snk.mass
+        c2_src = c2_src.avg()
+        c2_snk = c2_snk.avg()
 
-        if avg:
-            # Switch to averaged versions of all the quantites
-            # if not self._mass_override:
-            c3 = c3_avg
-            c2_src = c2_src.avg()
-            c2_snk = c2_snk.avg()
+        # if avg:
+        #     # Switch to averaged versions of all the quantites
+        #     # if not self._mass_override:
+        #     c3 = c3_avg
+        #     c2_src = c2_src.avg()
+        #     c2_snk = c2_snk.avg()
         # Compute the ratio
         r = {}
-        T = T.ravel().tolist()
+        
+        # T = T.ravel().tolist()
         for t_snk in T:
             t = np.arange(t_snk)
+            
             denom = np.sqrt(
                 c2_src[t] * c2_snk[t_snk - t] *
                 np.exp(-m_src * t) * np.exp(-m_snk * (t_snk - t))
@@ -413,7 +542,7 @@ def main():
     def c3_smeared(m_src,m_snk):
         return c3.avg(m_src, m_snk)
     print(c3_smeared)
-    rat = compute_ratio(c2_src, c2_snk,c3, c3.avg(m_src, m_snk), T)
+    rat = compute_ratio(c2_src, c2_snk,c3, c3.avg(m_src, m_snk),T)
     print(rat.items(),"testing")
 
 
@@ -468,7 +597,7 @@ def main():
     def guess(rat):
         return get_ff_plateau(rat)
 
-    guess(rat)
+    # guess(rat)
 
     def get_fit_keys(c2):
         """Get the keys of the two- and three-point correlators."""
@@ -567,7 +696,7 @@ def test_NPoint_3pt(tag,data,t_ins,T,c2,c2_src,c2_snk):
     nstates = Nstates(n=2, no=1,m=1,mo=0)
     # print(nstates)
     avg = c3.avg(m_src=c2_src.mass, m_snk=c2_snk.mass)
-    # print(avg)
+    print(avg)
     # fitter = C_3pt_Analysis(data,c2,c2_snk,c2_src,tags=tag)
     # fit = fitter.run_sequential_fits(nstates)
     # print(fit)
