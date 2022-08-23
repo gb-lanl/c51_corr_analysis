@@ -222,7 +222,7 @@ class C_3pt(object):
         e^{-E_{m} t^{\\rm ins}}
         \\big[ A^{\\rm src}_{im} \\big]^{T}
     """
-    def __init__(self, tag, ydata_3pt,t_ins=None,T=None, noise_threshy=0.03, nt=None):
+    def __init__(self, tag, ydata_3pt,t_ins,T, noise_threshy=0.03, nt=None):
         #TODO prompt user override with t_ins and T from input file if keys not integers 
         self.tag = tag
         self.ydata_3pt = ydata_3pt
@@ -236,23 +236,22 @@ class C_3pt(object):
         else:
             tdata = np.arange(nt)
         self.times = TimeContainer(tdata=tdata, nt=nt)
-        self.times.tmax = 84 
-        # _infer_tmax(tmp, noise_threshy)
+        self.times.tmax =  _infer_tmax(tmp, noise_threshy)
 
     def __str__(self):
         return "ThreePoint[tag='{}', tmin={}, tmax={}, nt={}, T={}]".\
             format(self.tag, self.times.tmin, self.times.tmax,
                    self.times.nt, sorted(list(self.T)))
 
-    def _confirm_T_keys(self):
-        for tsnk in self.ydata_3pt:
-            if not isinstance(tsnk, (int,float,np.int64,np.float32,tuple)):
-                raise TypeError("T keys must be of real numerical type")
+    # def _confirm_T_keys(self):
+    #     for tsnk in self.ydata_3pt:
+    #         if not isinstance(tsnk, (int,float,np.int64,np.float32,tuple)):
+    #             raise TypeError("T keys must be of real numerical type")
 
-        try:
-            np.unique([len(_ydata_3pt) for _ydata_3pt in self.ydata_3pt.values()]).item()
-        except TypeError as _:
-            raise RuntimeWarning("ydata_3pt values must be of equal length")
+    #     try:
+    #         np.unique([len(_ydata_3pt) for _ydata_3pt in self.ydata_3pt.values()]).item()
+    #     except TypeError as _:
+    #         raise RuntimeWarning("ydata_3pt values must be of equal length")
 
 
     # def _confirm_real(self, nt=None):
@@ -296,30 +295,34 @@ class C_3pt(object):
         
         T = np.sort(np.array(self.T))
         print(T)
-        T_cut = T[1:] - T[:-1]
+        t = np.arange(len(self.t_ins))
+        print(t)
+        # T_cut = T[1:] - T[:-1]
         # t_snks = np.sort(np.array(self.t_dict))
         # if self._confirm_real(self.t_ins):
         #     if self._confirm_real(self.T):
         for ts in T:
+            # for ti in t:
             # for i in range(0,12):
                 # print(ts,ti)
-            c3 = self.ydata_3pt[ts]  # C(t, T)
-            t = np.arange(len(self.t_ins))
-            
-            # t = np.arange(len(c3))
-            ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(ts-t))
-            tmp = _combine(ratio)
-            # if T_cut %2 !=0:
-            #     c3 = self.ydata_3pt[ts+ti]
-            #     ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(ts+ti -t))
-            #     tmp = 0.5 * (tmp+_combine(ratio))
+                c3 = self.ydata_3pt[ts] 
+                print(c3) # C(t, T)
+                # t = np.arange(len(self.t_ins))
+                
+                # t = np.arange(len(c3))
+                ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(ts-t))
+                tmp = _combine(ratio)
+                # if T_cut %2 !=0:
+                #     c3 = self.ydata_3pt[ts+ti]
+                #     ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(ts+ti -t))
+                #     tmp = 0.5 * (tmp+_combine(ratio))
 
-            
-            c3bar[ts] = tmp * np.exp(-m_src*t) * np.exp(-m_snk*(ts-t))
+                
+                c3bar[ts] = tmp * np.exp(-m_src*t) * np.exp(-m_snk*(ts-t))
 
         return c3bar
 
-    # @property
+    @property
     # def T(self):
     #     """Returns the sink times T from the tuples (t,T)."""
     #     # T_empty = list()
@@ -335,23 +338,23 @@ class C_3pt(object):
     # def __setitem__(self, key, value):
     #     self.ydata_3pt[key] = value
 
-    # def __len__(self):
-    #     return len(self.ydata_3pt)
+    def __len__(self):
+        return len(self.ydata_3pt)
 
     # def __iter__(self):
     #     for key in self.keys():
     #         yield key
 
-    # def items(self):
+    def items(self):
         
-    #     return self.ydata_3pt.items()
+        return self.ydata_3pt.items()
 
-    # def keys(self):
+    def keys(self):
         
-    #     return self.ydata_3pt.keys()
+        return self.ydata_3pt.keys()
 
-    # def values(self):
-    #     return self.ydata_3pt.values()
+    def values(self):
+        return self.ydata_3pt.values()
 
 class CorrFunction:
 

@@ -107,7 +107,7 @@ def get_naive_effective_g00(fh_num_gv, corr_gv):
     fh_ratio_gv = {key : fh_num_gv[key] / corr_gv[key] for key in fh_num_gv.keys()}
         #return fh_num_gv
         #fh_ratio_gv = {key : fh_num_gv[key] for key in fh_num_gv.keys()}
-    # print(fh_ratio_gv,"hi")
+    print(fh_ratio_gv,"hi")
     return {key : (np.roll(fh_ratio_gv[key], -1) - fh_ratio_gv[key])/1 for key in fh_ratio_gv.keys()}
 
 def plot_naive_effective_g00(fh_num_gv, corr_gv,
@@ -122,7 +122,7 @@ def plot_naive_effective_g00(fh_num_gv, corr_gv,
         ylabel = r'$g^{eff}_V}$'
     colors = np.array(['red', 'blue', 'yellow'])
     t = np.arange(t_plot_min, t_plot_max)
-    effective_g00 = get_effective_g00(fh_num_gv, corr_gv)
+    effective_g00 = get_naive_effective_g00(fh_num_gv, corr_gv)
 
     for j, key in enumerate(effective_g00.keys()):
         y = gv.mean(effective_g00[key])[t]

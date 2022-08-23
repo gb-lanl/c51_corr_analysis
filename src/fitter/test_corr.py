@@ -11,6 +11,7 @@ import numpy as np
 import lsqfit
 import re
 import pandas as pd
+import matplotlib.pyplot as plt
 
 import fitter.corr_functions as cf 
 import fitter.load_data as ld
@@ -244,11 +245,13 @@ def main():
     corr_gv['PS'] = gv_data['proton_PS']
 
     # preliminary plots 
-    # plot.get_naive_effective_g00(axial_num_gv, corr_gv)
+    plot.get_naive_effective_g00(axial_num_gv, corr_gv)
+    
 
-    # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
-    # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
-    # plot.plot_effective_mass(corr_gv)
+    plot.plot_naive_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
+    plot.plot_naive_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
+    plot.plot_effective_mass(corr_gv)
+    # plot.plot_correlators(gv_data)
     # plot.plot_correlator_summary(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
     
@@ -311,9 +314,9 @@ def main():
     fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
     # print(fit_)
     # print(fit_out)
-    t_ins = np.array(range(3)) 
+    t_ins = np.array(range(5)) 
     T = np.array(range(8)) + 8
-    T_ = T.ravel().tolist()
+    # T_ = T.ravel().tolist()
     
     
     
@@ -340,117 +343,17 @@ def main():
     
     c2_snk = c2['PS']
     c2_src = c2['SS']
+    print(c2_snk)
     # print(c2_src.fastfit.E,"mass")
-    h5fname = '/home/gbradley/c51_corr_analysis/tests/data/a09m135_s_avg_srcs0-15.h5'
-    pattern = "(?P<parity>proton|proton\_np)"
-    pattern += "_(?P<isospin>DD|UU)"
-    pattern += "_(?P<spin>dn_dn|up_up)"
-    pattern += "_tsep_[\-]*(?P<tsep>[0-9]+)"
-    pattern += ".*(?P<current>A3|V4).*cfgs\_srcs"
-    columns = ["nucleon", "current", "tsep", "cfg", "t", "isospin", "parity", "spin", "corr"]
-    data_frames = []
-
-    with h5py.File(h5fname, "r") as h5f:
-        dsets = get_dsets(h5f)
-        # print(dsets)
-
-        for key, dset in dsets.items():
-            match = re.search(pattern, key)
-            if match:
-                info = match.groupdict()
-
-                nucleon_parity = info.pop("parity").split("_")
-                info["nucleon"] = nucleon_parity[0]
-                info["parity"] = -1 if len(nucleon_parity) == 2 else 1
-                
-                isospin = info.pop("isospin")
-                info["isospin"] = 1 if isospin == "UU" else -1            
-
-                current_key = key.replace("cfgs_srcs", "local_curr")
-                curr_dset = h5f[current_key]
-
-                cfgs = dset[:, 0]
-                corr = (
-                    curr_dset[()].real if info["current"] in ["V4"] else curr_dset[()].imag
-                )
-                ts = range(corr.shape[-1])
-
-                tmp_df = (
-                    pd.DataFrame(index=cfgs, columns=ts, data=corr)
-                    .unstack()
-                    .reset_index()
-                    .rename(columns={"level_0": "t", "level_1": "cfg", 0: "corr"})
-                )
-                for key, val in info.items():
-                    tmp_df[key] = val
-                data_frames.append(tmp_df.astype({"tsep": int}))
-
-
-
-    df = pd.concat(
-        data_frames, 
-        ignore_index=True, 
-    ).reindex(columns, axis=1).sort_values(columns).reset_index(drop=True)
-    df.to_csv('out.csv')
-
-    spin_avg_df = df.groupby(
-    ["nucleon", "current", "tsep", "cfg", "t", "isospin", "parity"], as_index=False
-    )["corr"].mean()
-
-    # spin_avg_df.head()
-    tmp = spin_avg_df.copy()
-    tmp["corr"] *= tmp["parity"]
-    spin_parity_avg_df = tmp.groupby(
-        ["nucleon", "current", "tsep", "cfg", "t", "isospin",  ], as_index=False
-    )[["corr"]].mean()
-
-    # spin_parity_avg_df.head()
-    tmp = spin_parity_avg_df.copy()
-    tmp["corr"] *= tmp["isospin"]
-    isospin_spin_parity_avg_df = (
-        tmp.groupby(["nucleon", "current", "tsep", "cfg",  "t"], as_index=False)["corr"]
-        .sum()
-    )
-    isospin_spin_parity_avg_df.head()
-
-    def avg_data(arg):
-        corr_avg = gv.dataset.avg_data(
-            arg.pivot(index="cfg", columns="t", values="corr").values
-        )
-        return pd.Series(corr_avg)
-
-
-    group = isospin_spin_parity_avg_df.groupby(["nucleon", "current", "tsep"])
-    corr_df = (
-        group.apply(avg_data)
-        .reset_index(level=-1)
-        .rename(columns={"level_3": "t", 0: "corr"})
-        .reset_index()
-        .set_index(["nucleon", "current", "tsep", "t"])
-    )
-    # print(corr_df)
-    corr_out = corr_df.to_dict(orient='tight')
-    # print(corr_out)
-    test = corr_df.loc[('proton', 'A3'),'corr']
-    # test_src = 
-    out = test.to_dict()
-    ydict = {tag: val for tag,val in out.items() if isinstance(tag,tuple)}
-    # print(ydict)
-    # t_snk = list()
-    # for item in out.keys():
-    #     if item[0] not in t_snk:
-    #         t_snk.append(item[0])
-    # print(t_snk)
-   
-    
 
         
     # import fitter.corr_functions as cf 
     # c3 = cf.C_3pt(tag='proton',ydata_3pt=ydict)
     # print(c3)
 
-    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2,c2_snk,c2_src)
+    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T,c2,c2_src,c2_snk)
     print(c3)
+    print(get_model(c2_snk,c2_src, c3, 'SS', nstates = Nstates(n=2, no=1,m=1,mo=0)),"MODEL")
    
     # get_model(c2, c3, 'SS', nstates)
     # print(len(c3),"HELLO")
@@ -482,7 +385,7 @@ def main():
     c2_avg = {tag: c2[tag].avg() for tag in c2}
     print(c2_avg)
 
-    embed()
+    # embed()
 
     
     # print(c3.avg(m_src, m_snk),"hi")
@@ -505,7 +408,14 @@ def main():
     #                             t_snk - self.c2[self.tags.snk].times.tmin)
     # return tfit
 
-    def compute_ratio(c2_src,c2_snk,c3,c3_avg,T,avg=True,tau_override=False):
+    
+    def c3_smeared(m_src,m_snk):
+        return c3.avg(m_src, m_snk)
+    print(c3_smeared)
+
+    
+
+    def compute_ratio(c2_src,c2_snk,c3_avg,T,t_ins,avg=True,tau_override=False):
         """ compute the ratio of C_3pt(t,T) / C_2pt(t) 
         From eq.19 in https://arxiv.org/abs/2103.05599:
         "All matrix elements are obtained from fits to the 3pt correlators with the 
@@ -515,6 +425,7 @@ def main():
         m_snk = c2_snk.mass
         c2_src = c2_src.avg()
         c2_snk = c2_snk.avg()
+        c3 = c3_avg
 
         # if avg:
         #     # Switch to averaged versions of all the quantites
@@ -524,13 +435,14 @@ def main():
         #     c2_snk = c2_snk.avg()
         # Compute the ratio
         r = {}
+        t = np.arange(len(t_ins))
         
-        # T = T.ravel().tolist()
+        T = T.ravel().tolist()
         for t_snk in T:
-            t = np.arange(t_snk)
+            # t = np.arange(t_snk)
             
             denom = np.sqrt(
-                c2_src[t] * c2_snk[t_snk - t] *
+                c2_src[t] * c2_snk[t_snk - t] * 
                 np.exp(-m_src * t) * np.exp(-m_snk * (t_snk - t))
             )
             tmax = t_snk
@@ -538,12 +450,74 @@ def main():
             r[t_snk] = c3[t_snk][:tmax] * np.sqrt(2 * m_src) / denom[:tmax]
         return r
 
-    @property
-    def c3_smeared(m_src,m_snk):
-        return c3.avg(m_src, m_snk)
-    print(c3_smeared)
-    rat = compute_ratio(c2_src, c2_snk,c3, c3.avg(m_src, m_snk),T)
+    
+    rat = compute_ratio(c2_src, c2_snk,c3.avg(m_src, m_snk),T,t_ins)
     print(rat.items(),"testing")
+    print(rat.keys(),"keys")
+    print(max(rat.keys()),"max")
+    print(sorted(rat),"sort")
+    
+    # embed()
+
+    
+
+    def get_ff_plateau(rat):
+        plateau = float('-inf')
+        # sign = []
+        # sign = sign_(rat)
+        for t_snk, rbar in rat.items():
+            local_max = max(gv.mean(rbar[1:t_snk - 1]))
+            plateau = max(plateau, local_max)
+        return plateau
+
+    
+    def guess(rat):
+        return get_ff_plateau(rat)
+
+    guess = guess(rat)
+    print(guess)
+
+    def v_guess(guess,m_src):
+        """Compute a guess for the target matrix element Vnn[0,0]."""
+        return guess / np.sqrt(2.0 * m_src)
+
+    print(v_guess(guess, m_src))
+
+    def plot_ratio(ax=None,rat=None,tmin=0,tmax=None,plot_moose=True):
+        colors = np.array(['red', 'blue', 'yellow'])
+        if tmax is None:
+            tmax = max(rat.keys())
+        for color, T in zip(colors,sorted(rat)):
+            t_range = range(0,T)
+            t_range = t_range[max(tmin,min(t_range)):min(tmax,max(t_range))]
+        
+
+            if plot_moose:
+                # Unsmeared "saw-tooth" ratio
+                label = "R, T={0}".format(T)
+                y = rat[T][t_range]
+                plt.errorbar(
+                    ax, t_range, y,
+                    label=label, color=color, fmt='-.', **plot_kwargs
+                )
+            if T in rat:
+                # Smeared ratio
+                label = "Rbar, T={0}".format(T)
+                y = rat[T][t_range]
+                plt.errorbar(
+                    ax, t_range, y,
+                    label=label, color=color, **plot_kwargs
+                )
+
+        ax.set_xlabel('t/a')
+        ax.set_ylabel('$\\bar{R}$ (lattice units)')
+        #ax.legend(loc=0)
+        return ax
+    plot_ratio(rat=rat)
+
+
+    # ratio_gv = {key : (np.roll(guess[key], -1) - guess[key])/1 for key in guess.keys()}
+    # embed()
 
 
     def ensure_real(data):
@@ -584,20 +558,7 @@ def main():
                 f"Sign mismatch across t_snks, found {signs}. "
                  "Please specify by hand at initalization.")
 
-    def get_ff_plateau(rat):
-        plateau = float('-inf')
-        sign = []
-        sign = sign_(rat)
-        for t_snk, rbar in rat.items():
-            local_max = max(sign * gv.mean(rbar[1:t_snk - 1]))
-            plateau = max(plateau, local_max)
-        return sign * plateau
-
     
-    def guess(rat):
-        return get_ff_plateau(rat)
-
-    # guess(rat)
 
     def get_fit_keys(c2):
         """Get the keys of the two- and three-point correlators."""
@@ -790,13 +751,17 @@ def get_three_point_model(t_snk, tfit, tdata, nstates, tags=None, constrain=Fals
 
     return model
 
-def get_model(c2,c3, tag, nstates, constrain=False):
+def get_model(c2_snk,c2_src,c3, tag, nstates, constrain=False):
     """Gets a corrfitter model"""
     # TODO implement constrain 
-    print(c2[tag])
-    if isinstance(c2[tag], cf.C_2pt):
+    # print(c2[tag])
+    if isinstance(c2_snk, cf.C_2pt):
+        osc = bool(nstates.no) if tag == 'PS' else bool(nstates.mo)
+        return get_two_point_model(c2_snk, osc)
+    if isinstance(c2_src, cf.C_2pt):
         osc = bool(nstates.no) if tag == 'SS' else bool(nstates.mo)
-        return get_two_point_model(c2[tag], osc)
+        return get_two_point_model(c2_src, osc)
+    
     if isinstance(tag, int):
         t_snk = tag
         tdata = c3.times.tdata
@@ -993,10 +958,11 @@ class C_3pt_Analysis(object):
 
         # Handle models
         models_list = []
-        for tag in self.c2:
+        for tag in self.tags:
             model = get_model(self.c2,self.ds, tag, nstates,constrain)
             if model is not None:
                 models_list.append(model)
+        print(models_list,"hi")
 
         # Abort if too few models found; There should be a model corresponding to each key in dataset
         if len(models_list) != len(set(self.c2.keys())):
