@@ -203,7 +203,7 @@ def main():
         if args.verbose_fit:
             print(fit.format(maxline=True))
         else:
-            print(fit)
+            
     # t_range = [5,20]
     # print(x['gA'])
     fit_funcs = cf.FitCorr()
@@ -263,7 +263,7 @@ def main():
     #         fig = plt.figure('svd_diagnosis', figsize=(7, 4))
     #         svd_test.plot_ratio(show=True)
     # if args.interact:
-    #     import IPython; IPython.embed()
+    
     plt.ioff()
     plt.show()
 

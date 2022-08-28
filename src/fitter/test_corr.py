@@ -215,7 +215,7 @@ def main():
 
     nconfigs = [val.shape[0] for val in data_cfg.values()]
     nconfigs = np.unique(nconfigs).item()
-    # print(nconfigs)
+    print(nconfigs)
 
     ds = {key: gv.dataset.avg_data(data_cfg) for key, val in data_cfg.items()}
     # print(ds)
@@ -314,7 +314,7 @@ def main():
     fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
     # print(fit_)
     # print(fit_out)
-    t_ins = np.array(range(5)) 
+    t_ins = np.array(range(7)) 
     T = np.array(range(8)) + 8
     # T_ = T.ravel().tolist()
     
@@ -483,7 +483,9 @@ def main():
 
     print(v_guess(guess, m_src))
 
-    def plot_ratio(ax=None,rat=None,tmin=0,tmax=None,plot_moose=True):
+    def plot_ratio(rat,ax=None,tmin=0,tmax=None,plot_moose=True):
+        if ax is None:
+
         colors = np.array(['red', 'blue', 'yellow'])
         if tmax is None:
             tmax = max(rat.keys())
@@ -498,7 +500,7 @@ def main():
                 y = rat[T][t_range]
                 plt.errorbar(
                     ax, t_range, y,
-                    label=label, color=color, fmt='-.', **plot_kwargs
+                    label=label, color=color, fmt='-.'
                 )
             if T in rat:
                 # Smeared ratio
@@ -506,14 +508,14 @@ def main():
                 y = rat[T][t_range]
                 plt.errorbar(
                     ax, t_range, y,
-                    label=label, color=color, **plot_kwargs
+                    label=label, color=color
                 )
 
         ax.set_xlabel('t/a')
         ax.set_ylabel('$\\bar{R}$ (lattice units)')
         #ax.legend(loc=0)
         return ax
-    plot_ratio(rat=rat)
+
 
 
     # ratio_gv = {key : (np.roll(guess[key], -1) - guess[key])/1 for key in guess.keys()}
