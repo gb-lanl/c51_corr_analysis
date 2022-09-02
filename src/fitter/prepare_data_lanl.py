@@ -24,6 +24,31 @@ from nucleon_elastic_ff.data.parsing import parse_t_info, parse_file_info
 from nucleon_elastic_ff.data.scripts.concat import concatenate
 from nucleon_elastic_ff.data.scripts.concat import concat_dsets
 
+''' 
+Convert raw correlator data into agreeable format for fitter. 
+
+Args: 
+
+
+Returns:
+    Coalesced_Dataset object: 
+        corr_gv : dictionary of correlated data
+'''
+
+def coalesce_data(corr_raw, skip_prelim=False,fold=False,nt=None):
+
+    corr_binned = raw_to_binned(
+        corr_raw
+    )
+
+    corr_gv = Coalesced_Dataset(
+        corr_binned,
+        skip_prelim = skip_prelim,
+        nt = nt
+    )
+
+    return corr_gv
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -130,16 +155,16 @@ def main():
 # )
 
 ### Save data into txt files for unew analysis
-    newdir = os.path.join('unew_files',labels[ensemble]+'_pbp')
-    os.makedirs(newdir,exist_ok=True)
-    filename = os.path.join(newdir,'runs_')
-    for i,s in enumerate(streams[ensemble]):
-        dset_mdt[s].to_csv(filename+str(i)+'.dat',sep=' ',header=False,index=False,columns=['pbp_l','pbp_s','pbp_c'],mode='w')
+    # newdir = os.path.join('unew_files',labels[ensemble]+'_pbp')
+    # os.makedirs(newdir,exist_ok=True)
+    # filename = os.path.join(newdir,'runs_')
+    # for i,s in enumerate(streams[ensemble]):
+    #     dset_mdt[s].to_csv(filename+str(i)+'.dat',sep=' ',header=False,index=False,columns=['pbp_l','pbp_s','pbp_c'],mode='w')
 
     for f_i in range(0,3):
         with h5py.File(sorted_files[f_i], 'r') as h5f:
             dsets = get_dsets(h5f,load_dsets=True)
-    print(dsets)
+            dsets.to_csv()
             # embed()
             # print(dsets.keys())
             
