@@ -10,15 +10,15 @@ import re
 import h5py
 import numpy as np
 
-from nucleon_elastic_ff.utilities import set_up_logger
-from nucleon_elastic_ff.utilities import find_all_files
-from nucleon_elastic_ff.utilities import has_match
+from master_utils import set_up_logger
+from master_utils import find_all_files
+from master_utils import has_match
 
-from nucleon_elastic_ff.data.h5io import get_dsets
-from nucleon_elastic_ff.data.h5io import create_dset
+from h5io import get_dsets
+from h5io import create_dset
 
-from nucleon_elastic_ff.data.scripts.utilities import parse_dset_address
-from nucleon_elastic_ff.data.scripts.utilities import assert_patterns_present
+from utils import parse_dset_address
+from utils import assert_patterns_present
 
 
 LOGGER = set_up_logger("nucleon_elastic_ff")

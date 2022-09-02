@@ -12,8 +12,8 @@ import os
 import numpy as np
 import h5py
 
-from nucleon_elastic_ff.utilities import set_up_logger
-from nucleon_elastic_ff.utilities import has_match
+from master_utils import set_up_logger
+from master_utils import has_match
 
 #LOGGER = set_up_logger("nucleon_elastic_ff")
 LOGGER = set_up_logger("lqcd correlator analysis")
