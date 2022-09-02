@@ -1,5 +1,5 @@
 import sys 
-from fitter import *
+from src import fitter
 from tests import *
 import argparse
 
@@ -10,8 +10,7 @@ def main():
         less_indent_formatter = lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=40)
         parser = argparse.ArgumentParser(description = " This is the master executable for analysis of \n"
         " lqcd correlator and form factor data. The fallback default arguments are contained in /tests/input_file/defaults.py. \n"
-        "The logical procedure is as follows: \n"
-        " 1. \n" 
+        "The logical procedure is as follows:" 
         "Features have been added with modularity/user flexibility in mind. However, with this type of analysis,"
         " The human-provided input remains necessary. ")
         
@@ -45,6 +44,15 @@ def main():
 
 
         args = parser.parse_args()
+        ''' parse provided input/label file '''
+        # corr_raw = 
+
+        ''' process correlator data '''
+        corr_gv = fitter.prepare_data_lanl.coalesce_data(corr_raw)
+
+        ''' data handling options ''' 
+
+
 
         lg.set_log_level(args.log_level)
         args = vars(args)
@@ -58,12 +66,29 @@ def main():
         if args.run_snk:
                 analysis.run_snk(n=args.nstates)
 
-        #     if args.run_ratio:
-        #         analysis.run_ratio(
-        #                 n=args.nstates-1, )
-        #                 tmin_src = 
-        #                 tmin_snk = 
-        #                 t_iter = 
+        ''' nts = [c2_src.times.nt,
+           c2_snk.times.nt,
+           c3.times.nt]
+
+        tmaxes = [c2_src.times.tmax,
+                c2_snk.times.tmax,
+                c3.times.tmax]
+        tdata = np.arange(0, min(tmaxes)) '''
+        if args.run_ratio:
+                analysis.run_ratio(
+                        n=args.nstates-1, 
+                        tmin_src = c2_src.times.tmin,  
+                        tmin_snk = c2_snk.times.tmin,
+                        t_iter = c3.times.nt)
+                # if args.axial:
+                #         analysis
+                
+                # if args.vector:
+                
+                # if args.scalar:
+                
+                # if args.tensor:
+
         if args.run_direct:
                 analysis.run_direct(nstates=args.nstates)
         

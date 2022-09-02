@@ -50,6 +50,13 @@ def coalesce_data(corr_raw, skip_prelim=False,fold=False,nt=None):
     return corr_gv
 
 
+
+
+def normalize_ff(curr,mom,m_snk):
+    normalize = np.float(1)
+    return normalize
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Perform analysis of two-point correlation function')
