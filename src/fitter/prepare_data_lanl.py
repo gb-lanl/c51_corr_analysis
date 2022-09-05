@@ -16,6 +16,8 @@ import collections
 import numpy as np
 import lsqfit
 
+import fitter.corr_functions as cf
+
 from IPython import embed
 sys.path.insert(0, '/home/gbradley/nucleon_elastic_FF')
 from nucleon_elastic_ff.data.h5io import get_dsets 
@@ -49,6 +51,23 @@ def coalesce_data(corr_raw, skip_prelim=False,fold=False,nt=None):
 
     return corr_gv
 
+def correlate(data):
+    mean = gv.mean(gv.dataset.avg_data(data))
+    covariance = correct_covariance(data)
+    return gv.gvar(mean, cov)
+
+
+def build_correlated_dset(data):
+    tmp_data = {}
+
+    for key, val in data.items():
+        try:
+            # three-pt dsets should be indexed by int tsep values 
+            if (not isinstance(key, int)):
+                tmp_data[key] = fold(val)
+
+
+
 
 
 
@@ -56,6 +75,15 @@ def normalize_ff(curr,mom,m_snk):
     normalize = np.float(1)
     return normalize
 
+class Coalesced_Dataset(object):
+    def __init__(self,data_dict,datatags=None,skip_prelim=False):
+
+        ydata_3pt = {datatag: val for datatag,val in data_dict.items() if isinstance(datatag, int)}
+        self.c_3pt = cf.C_3pt(tag, ydata_3pt=ydata_3pt)
+
+        self.c2 = {}
+        for datatag in self.datatags:
+            self.c2[datatag] = cf.C_2pt(datatag, ydata) 
 
 def main():
     parser = argparse.ArgumentParser(
