@@ -10,18 +10,18 @@ import re
 import h5py
 import numpy as np
 
-from master_utils import set_up_logger
-from master_utils import find_all_files
-from master_utils import has_match
+from src.master_utils import set_up_logger
+from src.master_utils import find_all_files
+from src.master_utils import has_match
 
-from h5io import get_dsets
-from h5io import create_dset
+from src.h5io import get_dsets
+from src.h5io import create_dset
 
-from utils import parse_dset_address
-from utils import assert_patterns_present
+from src.utils import parse_dset_address
+from src.utils import assert_patterns_present
 
 
-LOGGER = set_up_logger("nucleon_elastic_ff")
+LOGGER = set_up_logger("lanl lqcd analysis")
 
 
 def concat_dsets(  # pylint: disable=R0913, R0914

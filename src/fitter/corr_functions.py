@@ -13,8 +13,8 @@ import lsqfit
 import importlib
 import gvar as gv
 import corrfitter as cf
-import fitter.fastfit as fastfit #Lepage's prelim fitter -> p0 to speed up initial fits
-import figures as plt
+import fastfit as fastfit #Lepage's prelim fitter -> p0 to speed up initial fits
+# import figures as plt
 
 def main():
     pass
@@ -114,7 +114,7 @@ class C_2pt(object):
     simple two-point correlation function
     Todo 
     '''
-    def __init__(self, tag, ydata, noise_threshy=0.03, skip_fastfit=False, **time_kwargs):
+    def __init__(self, tag, ydata, noise_threshy=None, skip_fastfit=False, **time_kwargs):
         self.tag = tag
         self.ydata = ydata
         self.noise_threshy = noise_threshy
@@ -122,7 +122,7 @@ class C_2pt(object):
         if tdata is None:
             tdata = np.arange(len(ydata))
         self.times = TimeContainer(tdata=tdata, **time_kwargs)
-        self.times.tmax = _infer_tmax(ydata, noise_threshy)
+        self.times.tmax = 96 #_infer_tmax(ydata, noise_threshy)
         # Estimate the ground-state energy and amplitude
         if skip_fastfit:
             self.fastfit = None

@@ -12,8 +12,8 @@ import argparse
 import importlib
 import corrfitter
 
-import fitter.corr_functions as cf 
-import fitter.load_data as ld
+import corr_functions as cf 
+import load_data as ld
 # import fitter.plotting as plot
 LOGGER = logging.getLogger(__name__)
 

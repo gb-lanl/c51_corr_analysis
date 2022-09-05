@@ -6,7 +6,7 @@ from typing import Dict
 
 import re
 
-from master_utils import set_up_logger
+from src.master_utils import set_up_logger
 
 LOGGER = set_up_logger("lanl lqcd analysis")
 
@@ -61,24 +61,35 @@ def parse_file_info(
             If one key is not specified.
     """
     pattern = (
-        r"(?P<type>formfac_4D[_a-z]*|spec_4D[_a-z]*)"
-        r"(?:_a(?P<ensemble>[0-9a-zA-Z]+))?"
-        r"(?:_(?P<stream>[a-z]+))?"
-        r"(?:_(?P<cfg>[0-9]+))?"
-        r"(?:_gf(?P<gf>[0-9\.]+))?"
-        r"(?:_w(?P<w>[0-9\.]+))?"
-        r"(?:_n(?P<n>[0-9]+))?"
-        r"(?:_M(?P<M>[0-9\.]+))?"
-        r"(?:_L(?P<L>[0-9]+))?"
-        r"(?:_a(?P<aa>[0-9\.]+))?"
-        r"(?:_mq(?P<mq>[0-9\.]+))?"
-        r"(?:_px(?P<px>[0-9]+)py(?P<py>[0-9]+)pz(?P<pz>[0-9]+))?"
-        r"(?:_dt(?P<dt>[0-9]+))?"
-        r"(?:_Srcs(?P<Srcs>[0-9]+\-[0-9]+))?"
-        r"_"
-        r"(?:x(?P<x>[0-9]+)+y(?P<y>[0-9]+)z(?P<z>[0-9]+)t(?P<t>[0-9]+))|(?P<avg>src_avg)"
-        r"(?:_(?P<stype>[a-zA-Z]+))?"
-        r".h5"
+    r"3pt"
+    r"_tsep(?P<tsep>[0-9]|[0-9]+)?"  # must match `_tsep` and stores the following numbers (any length)
+    r"/NUCL_(?P<quark>U|D)?"  # Store U or D in quark
+    r"_MIXED_NONREL?"  # Not sure if this changes. Not stored for now
+    r"_l(?P<l>[0-9]+)?"  # action parameters?
+    r"_g(?P<g>[0-15]+)?"
+    r"/src(?P<src>[0-9\.]+)?"  # Stores numbers + . to store decimals. Must escape .
+    r"_snk(?P<snk>[0-9\.]+)?"  # Stores numbers + . to store decimals. Must escape .
+    r"/qz(?P<qz>[\+\-0-9]+)?" 
+    r"_qy(?P<qy>[\+\-0-9]+)?" 
+    r"_qx(?P<qx>[\+\-0-9]+)?" 
+        # r"(?P<type>formfac_4D[_a-z]*|spec_4D[_a-z]*)"
+        # r"(?:_a(?P<ensemble>[0-9a-zA-Z]+))?"
+        # r"(?:_(?P<stream>[a-z]+))?"
+        # r"(?:_(?P<cfg>[0-9]+))?"
+        # r"(?:_gf(?P<gf>[0-9\.]+))?"
+        # r"(?:_w(?P<w>[0-9\.]+))?"
+        # r"(?:_n(?P<n>[0-9]+))?"
+        # r"(?:_M(?P<M>[0-9\.]+))?"
+        # r"(?:_L(?P<L>[0-9]+))?"
+        # r"(?:_a(?P<aa>[0-9\.]+))?"
+        # r"(?:_mq(?P<mq>[0-9\.]+))?"
+        # r"(?:_px(?P<px>[0-9]+)py(?P<py>[0-9]+)pz(?P<pz>[0-9]+))?"
+        # r"(?:_dt(?P<dt>[0-9]+))?"
+        # r"(?:_Srcs(?P<Srcs>[0-9]+\-[0-9]+))?"
+        # r"_"
+        # r"(?:x(?P<x>[0-9]+)+y(?P<y>[0-9]+)z(?P<z>[0-9]+)t(?P<t>[0-9]+))|(?P<avg>src_avg)"
+        # r"(?:_(?P<stype>[a-zA-Z]+))?"
+        # r".h5"
     )
     match = re.search(pattern, filename)
     if not match:
@@ -88,20 +99,15 @@ def parse_file_info(
     LOGGER.debug("Parsing info of `%s`", filename)
     for key, val in match.groupdict().items():
         LOGGER.debug("%s == %s", key, val)
-        if key in ["stype", "type", "stream", "avg", "ensemble", "Srcs"]:
+        if key in ["quark", "src", "snk"]:
             info[key] = val
         elif key in [
-            "cfg",
-            "n",
-            "L",
-            "px",
-            "py",
-            "pz",
-            "dt",
-            "x",
-            "y",
-            "z",
-            "t",
+            "tsep",
+            "g",
+            "l",
+            "qx",
+            "qy",
+            "qz"
         ]:
             info[key] = int(val) if convert_numeric and val is not None else val
         else:

@@ -8,10 +8,10 @@ from typing import Optional
 
 import re
 
-from master_utils import set_up_logger
-from master_utils import has_match
+from src.master_utils import set_up_logger
+from src.master_utils import has_match
 
-from parsing import parse_file_info
+from src.parsing import parse_file_info
 
 LOGGER = set_up_logger("lanl lqcd analysis")
 
