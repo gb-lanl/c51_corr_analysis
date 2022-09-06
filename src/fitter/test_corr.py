@@ -19,7 +19,7 @@ import fitter.plotting as plot
 import fitter.fastfit as prelim #LePage's preliminary corrfitter to generate p0
 import fitter.priors as priors 
 sys.path.insert(0, '/home/gbradley/nucleon_elastic_FF')
-from nucleon_elastic_ff.data.h5io import get_dsets 
+from h5io import get_dsets 
 from IPython import embed
 
 SVDCUT = 0.002
@@ -483,38 +483,38 @@ def main():
 
     print(v_guess(guess, m_src))
 
-    def plot_ratio(rat,ax=None,tmin=0,tmax=None,plot_moose=True):
-        if ax is None:
+    # def plot_ratio(rat,ax=None,tmin=0,tmax=None,plot_moose=True):
+    #     if ax is None:
 
-        colors = np.array(['red', 'blue', 'yellow'])
-        if tmax is None:
-            tmax = max(rat.keys())
-        for color, T in zip(colors,sorted(rat)):
-            t_range = range(0,T)
-            t_range = t_range[max(tmin,min(t_range)):min(tmax,max(t_range))]
+    #     colors = np.array(['red', 'blue', 'yellow'])
+    #     if tmax is None:
+    #         tmax = max(rat.keys())
+    #     for color, T in zip(colors,sorted(rat)):
+    #         t_range = range(0,T)
+    #         t_range = t_range[max(tmin,min(t_range)):min(tmax,max(t_range))]
         
 
-            if plot_moose:
-                # Unsmeared "saw-tooth" ratio
-                label = "R, T={0}".format(T)
-                y = rat[T][t_range]
-                plt.errorbar(
-                    ax, t_range, y,
-                    label=label, color=color, fmt='-.'
-                )
-            if T in rat:
-                # Smeared ratio
-                label = "Rbar, T={0}".format(T)
-                y = rat[T][t_range]
-                plt.errorbar(
-                    ax, t_range, y,
-                    label=label, color=color
-                )
+    #         if plot_moose:
+    #             # Unsmeared "saw-tooth" ratio
+    #             label = "R, T={0}".format(T)
+    #             y = rat[T][t_range]
+    #             plt.errorbar(
+    #                 ax, t_range, y,
+    #                 label=label, color=color, fmt='-.'
+    #             )
+    #         if T in rat:
+    #             # Smeared ratio
+    #             label = "Rbar, T={0}".format(T)
+    #             y = rat[T][t_range]
+    #             plt.errorbar(
+    #                 ax, t_range, y,
+    #                 label=label, color=color
+    #             )
 
-        ax.set_xlabel('t/a')
-        ax.set_ylabel('$\\bar{R}$ (lattice units)')
-        #ax.legend(loc=0)
-        return ax
+    #     ax.set_xlabel('t/a')
+    #     ax.set_ylabel('$\\bar{R}$ (lattice units)')
+    #     #ax.legend(loc=0)
+    #     return ax
 
 
 

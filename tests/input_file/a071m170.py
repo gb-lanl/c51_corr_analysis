@@ -3,8 +3,9 @@ import numpy as np
 import os
 # import fitter.fastfit as ffit
 
-data_directory = '/home/gbradley/c51_corr_analysis/tests/data/E7/' #all configurations
-data_file = './data/E7/E7-0_1000.ama.h5'
+file_params = {}
+file_params['data_dir'] = '/home/gbradley/c51_corr_analysis/tests/data/E7/' #all configurations
+file_params['data_file'] = './data/E7/E7-0_1000.ama.h5'
 
 # def ens_base():
 #     ens,stream = os.getcwd().split('/')[-1].split('_')

@@ -19,12 +19,11 @@ import lsqfit
 import fitter.corr_functions as cf
 
 from IPython import embed
-sys.path.insert(0, '/home/gbradley/nucleon_elastic_FF')
-from nucleon_elastic_ff.data.h5io import get_dsets 
-from nucleon_elastic_ff.data.parsing import parse_t_info, parse_file_info 
 
-from nucleon_elastic_ff.data.scripts.concat import concatenate
-from nucleon_elastic_ff.data.scripts.concat import concat_dsets
+from utilities.h5io import get_dsets 
+from utilities.parsing import parse_t_info, parse_file_info 
+
+from utilities.concat_ import concatenate,concat_dsets
 
 ''' 
 Convert raw correlator data into agreeable format for fitter. 
@@ -53,21 +52,37 @@ def coalesce_data(corr_raw, skip_prelim=False,fold=False,nt=None):
 
 def correlate(data):
     mean = gv.mean(gv.dataset.avg_data(data))
-    covariance = correct_covariance(data)
+    covariance = compute_covariance(data)
     return gv.gvar(mean, cov)
 
-
-def build_correlated_dset(data):
-    tmp_data = {}
-
-    for key, val in data.items():
-        try:
-            # three-pt dsets should be indexed by int tsep values 
-            if (not isinstance(key, int)):
-                tmp_data[key] = fold(val)
+# def compute_covariance(data):
 
 
+# def raw_to_binned(data):
+#     tmp_data = {}
 
+#     for key, val in data.items():
+        
+#             # three-pt dsets should be indexed by int tsep values 
+#             if (not isinstance(key, int)):
+#                 tmp_data[key] = fold(val)
+#     return tmp_data
+
+def block_data(data, bl):
+    ''' data shape is [Ncfg, others]
+        bl = block length in configs
+    '''
+    ncfg, nt_gf = data.shape
+    if ncfg % bl == 0:
+        nb = ncfg // bl
+    else:
+        nb = ncfg // bl + 1
+    corr_bl = np.zeros([nb, nt_gf], dtype=data.dtype)
+    for b in range(nb-1):
+        corr_bl[b] = data[b*bl:(b+1)*bl].mean(axis=0)
+    corr_bl[nb-1] = data[(nb-1)*bl:].mean(axis=0)
+
+    return corr_bl
 
 
 

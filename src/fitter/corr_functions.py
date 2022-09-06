@@ -112,7 +112,6 @@ class TimeContainer(object):
 class C_2pt(object):
     '''
     simple two-point correlation function
-    Todo 
     '''
     def __init__(self, tag, ydata, noise_threshy=None, skip_fastfit=False, **time_kwargs):
         self.tag = tag
