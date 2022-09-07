@@ -5,12 +5,20 @@ import os
 
 file_params = {}
 file_params['data_dir'] = '/home/gbradley/c51_corr_analysis/tests/data/E7/' #all configurations
-file_params['data_file'] = './data/E7/E7-0_1000.ama.h5'
+# file_params['out_dir'] = 'path/to/concateddsets/'
 
-# def ens_base():
-#     ens,stream = os.getcwd().split('/')[-1].split('_')
-#     return ens,stream 
-# print(ens_base())
+fit_states = ['pion','proton','gA','gV']
+bs_seed = 'a071m170'
+
+def ensemble(params):
+    cfg     = params['ENS_BASE']+'-'+params['STREAM']+'.ama'
+
+params = dict()
+params['run_ff'] = True
+
+params['cfg_i'] = 600  # initial config number
+params['cfg_f'] = 3396 # final config number
+params['cfg_d'] = 4    # config step value 
 
 def parse_cfg_arg(cfg_arg,params):
     allowed_cfgs = range(params['cfg_i'],params['cfg_f']+1,params['cfg_d'])
@@ -41,24 +49,19 @@ def parse_cfg_arg(cfg_arg,params):
             sys.exit()
     return range(ci,cf+1,dc)
 
-
-
-def ensemble(params):
-    cfg     = params['ENS_BASE']+'-'+params['STREAM']+'.ama'
-
-params = dict()
-params['cfg_i'] = 600  # initial config number
-params['cfg_f'] = 2232 # final config number
-params['cfg_d'] = 4    # config step value 
-
 params['seed'] = dict()
 params['seed']['0'] = '0'
 params['seed']['a'] = 'a'
 params['seed']['b'] = 'b'
 params['seed']['c'] = 'c'
 
+# isotropic clover ens info 
 params['ENS_ABBR'] =  'a071m170'
 params['ENS']      =  'E7'
+params['NL']        = '72'
+params['NT']        = '192'
+
+
 params['t_seps']  = [13,15,17,19,21]
 params['flavs']   = ['U','D']
 params['spins']   = ['up_up','dn_dn']
@@ -66,43 +69,87 @@ params['snk_mom'] = ['0 0 0']
 params['SS_PS']   = 'SS'
 params['particles'] = ['proton','proton_SP','pion','pion_SP']
 params['curr_4d'] = ['A3','V4','A1','A2','A4','V1','V2','V3','P','S']
-params['curr_0p'] = ['A3','V4','A1','A2','A4','V1','V2','V3','S','T34','T12','T13','T14','T23','T24','CHROMO_MAG']
+params['curr_0p'] = ['A3','V4','A1','A2','A4','V1','V2','V3','S','T34','T12','T13','T14','T23','T24']
 
-names = dict()
-names['flow']             = 'cfg_flow_%(ENS_LONG)s%(STREAM)s_%(CFG)s_wflow%(FLOW_TIME)s'
-names['src']              = 'src_%(ENS_S)s_%(CFG)s_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s_%(SRC)s'
-names['prop']             = 'prop_%(ENS_S)s_%(CFG)s_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s'
-names['prop']            += '_M5%(M5)s_L5%(L5)s_a%(alpha5)s_mq%(MQ)s_%(SRC)s'
-''' the xml generation may incluce multiple quark masses, so no mq info '''
-names['prop_xml']         = 'prop_%(ENS_S)s_%(CFG)s_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s'
-names['prop_xml']        += '_M5%(M5)s_L5%(L5)s_a%(alpha5)s_%(SRC)s'
-names['spec']             = 'spec_%(ENS_S)s_%(CFG)s_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s'
-names['spec']            += '_M5%(M5)s_L5%(L5)s_a%(alpha5)s_mq%(MV_L)s_%(SRC)s'
-names['spec_4D']            = names['spec'].replace('spec_','spec_4D_')
-names['spec_4D_tslice']     = names['spec'].replace('spec_','spec_4D_tslice_')
-names['spec_4D_tslice_avg'] = names['spec'].replace('spec_','spec_4D_tslice_avg_')
-names['hyperspec']        = 'hyperspec_%(ENS_S)s_%(CFG)s_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s'
-names['hyperspec']       += '_M5%(M5)s_L5%(L5)s_a%(alpha5)s_ml%(MV_L)s_ms%(MV_S)s_%(SRC)s'
-names['h_spec']           = names['hyperspec']
-names['hisq_spec']        = 'hisq_spec_%(ENS_S)s_ml%(ML)s_ms%(MS)s_%(CFG)s_%(SRC)s'
-names['seqsrc']           = 'seqsrc_%(ENS_S)s_%(CFG)s_%(PARTICLE)s_%(FLAV_SPIN)s'
-names['seqsrc']          += '_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s_M5%(M5)s_L5%(L5)s_a%(alpha5)s_mq%(MQ)s'
-names['seqsrc']          += '_%(MOM)s_%(SRC)s_%(SS_PS)s'
-names['coherent_seqsrc']  = 'seqsrc_%(ENS_S)s_%(CFG)s_%(PARTICLE)s_%(FLAV_SPIN)s'
-names['coherent_seqsrc'] += '_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s_M5%(M5)s_L5%(L5)s_a%(alpha5)s_mq%(MQ)s'
-names['coherent_seqsrc'] += '_%(MOM)s_dt%(T_SEP)s_Nsnk%(N_SEQ)s_%(SS_PS)s'
-names['seqprop']          = 'seqprop_%(ENS_S)s_%(CFG)s_%(PARTICLE)s_%(FLAV_SPIN)s'
-names['seqprop']         += '_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s_M5%(M5)s_L5%(L5)s_a%(alpha5)s_mq%(MQ)s'
-names['seqprop']         += '_%(MOM)s_dt%(T_SEP)s_Srcs%(SRC_SET)s_%(SS_PS)s'
-names['formfac']          = 'formfac_%(ENS_S)s_%(CFG)s'
-names['formfac']         += '_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s_M5%(M5)s_L5%(L5)s_a%(alpha5)s_mq%(MQ)s'
-#names['formfac']         += '_%(MOM)s_dt%(T_SEP)s_Nsnk%(N_SEQ)s_%(SRC)s_%(SS_PS)s'
-names['formfac']         += '_%(MOM)s_dt%(T_SEP)s_Srcs%(SRC_SET)s_%(SRC)s_%(SS_PS)s'
-names['formfac_4D']                = names['formfac'].replace('formfac','formfac_4D')
-names['formfac_4D_tslice']         = names['formfac'].replace('formfac','formfac_4D_tslice')
-names['formfac_4D_tslice_src_avg'] = names['formfac'].replace('formfac','formfac_4D_tslice_src_avg')
 
-names['mixed_corr']       = 'dwf_hisq_spec_%(ENS_S)s_wflow%(FLOW_TIME)s_M5%(M5)s_L5%(L5)s'
-names['mixed_corr']      += '_a%(alpha5)s_cfg_%(CFG)s_src%(SRC)s_%(SMR)s_ml%(MQ_L)s_ms%(MQ_S)s.corr'
-names['pipi_scat']        = 'pipi_%(ENS_S)s_%(CFG)s_gf%(FLOW_TIME)s_w%(WF_S)s_n%(WF_N)s'
-names['pipi_scat']       += '_M5%(M5)s_L5%(L5)s_a%(alpha5)s_%(MV_LS)s_%(SRC)s'
+corr_lst = {
+    'proton':{
+        'dsets':[
+            '2pt/proton/src10.0_snk10.0/proton/AMA',
+            '2pt/proton_SP/src10.0_snk10.0/proton/AMA'],
+        'weights'  :[1],
+        't_reverse':[False],
+        'fold'     :True,
+        'snks'     :['S','P'],
+        'srcs'     :['S'],
+        'xlim'     :[0,48.5],
+        'ylim'     :[0.12,0.169],
+        'colors'   :{'SS':'#70bf41','PS':'k'},
+        'type'     :'exp',
+        'ztype'    :'z_snk z_src',
+        'z_ylim'   :[0.055,0.26],
+        # fit params
+        'n_state'  :3,
+        'tsep'     : 0,
+        'T'        :96,
+        't_range'  :np.arange(5,48),
+        't_sweep'  :range(2,28),
+        'n_sweep'  :range(1,6),
+        'eff_ylim' :[0.133,0.1349]
+    },
+}
+
+priors = gv.BufferDict()
+x = dict()
+
+priors['pion_E_0']  = gv.gvar(0.14, .006)
+priors['pion_zS_0'] = gv.gvar(5e-3, 5e-4)
+priors['pion_zP_0'] = gv.gvar(0.125,  0.015)
+
+priors['proton_E_0']  = gv.gvar(0.35, .025)
+priors['proton_zS_0'] = gv.gvar(2.0e-5, 1.e-5)
+priors['proton_zP_0'] = gv.gvar(2.5e-3, 1.e-3)
+
+for corr in corr_lst:#[k for k in corr_lst if 'mres' not in k]:
+    for n in range(1,10):
+        # use 2 mpi splitting for each dE
+
+        # E_n = E_0 + dE_10 + dE_21 +...
+        # use log prior to force ordering of dE_n
+        priors['log(%s_dE_%d)' %(corr,n)] = gv.gvar(np.log(2*priors['pion_E_0'].mean), 0.7)
+
+        # for z_P, no suppression with n, but for S, smaller overlaps
+        priors['%s_zP_%d' %(corr,n)] = gv.gvar(priors['%s_zP_0' %(corr)].mean, 2*priors['%s_zP_0' %(corr)].sdev)
+        zS_0 = priors['%s_zS_0' %(corr)]
+        if n <= 2:
+            priors['%s_zS_%d' %(corr,n)] = gv.gvar(zS_0.mean, 2*zS_0.sdev)
+        else:
+            priors['%s_zS_%d' %(corr,n)] = gv.gvar(zS_0.mean/2, zS_0.sdev)
+
+    for snk in corr_lst[corr]['snks']:
+        sp = snk+corr_lst[corr]['srcs'][0]
+        state = corr+'_'+sp
+        x[state] = dict()
+        x[state]['state'] = corr
+        for k in ['type', 'T', 'n_state', 't_range', 'eff_ylim', 'ztype']:
+            if k in corr_lst[corr]:
+                x[state][k] = corr_lst[corr][k]
+        if 't0' in corr_lst[corr]:
+            x[state]['t0'] = corr_lst[corr]['t0']
+        else:
+            x[state]['t0'] = 0
+        if 'mres' not in corr:
+            x[state]['color'] = corr_lst[corr]['colors'][sp]
+            x[state]['snk']   = snk
+            x[state]['src']   = corr_lst[corr]['srcs'][0]
+        else:
+            x[state]['color'] = corr_lst[corr]['colors']
+# def ens_base():
+#     ens,stream = os.getcwd().split('/')[-1].split('_')
+#     return ens,stream 
+# print(ens_base())
+
+
+
+
+

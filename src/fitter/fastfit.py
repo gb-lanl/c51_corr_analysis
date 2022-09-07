@@ -12,8 +12,8 @@ import argparse
 import importlib
 import corrfitter
 
-import corr_functions as cf 
-import load_data as ld
+import fitter.corr_functions as cf 
+import fitter.load_data as ld
 # import fitter.plotting as plot
 LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class FastFit(object):
 
         t = np.arange(len(data))[tmin:tmax]
         data = data[tmin:tmax]
-        print(data)
+        # print(data)
 
         if not t.size:
             raise ValueError(

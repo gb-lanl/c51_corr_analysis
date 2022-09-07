@@ -9,18 +9,18 @@ import re
 
 import h5py
 
-from master_utils import set_up_logger
-from master_utils import find_all_files
-from master_utils import has_match
+from utilities.master_utils import set_up_logger
+from utilities.master_utils import find_all_files
+from utilities.master_utils import has_match
 
-from h5io import get_dsets
-from h5io import create_dset
+from utilities.h5io import get_dsets
+from utilities.h5io import create_dset
 
-from utils import group_files
-from utils import parse_dset_address
-from utils import assert_patterns_present
+from utilities.utils import group_files
+from utilities.utils import parse_dset_address
+from utilities.utils import assert_patterns_present
 
-LOGGER = set_up_logger("nucleon_elastic_ff")
+LOGGER = set_up_logger("lanl_lqcd_analysis")
 
 
 def dset_avg(  # pylint: disable=R0914, R0913

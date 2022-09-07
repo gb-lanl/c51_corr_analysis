@@ -15,37 +15,6 @@ def inflate(params, frac):
     return params
 
 
-def _is_log(key):
-    """Check if the key has the form 'log(*)'."""
-    pattern = re.compile(r"^log\((.*)\)$")
-    match = re.match(pattern, key)
-    if match:
-        if re.match(pattern, match[1]):
-            raise ValueError(f"Cannot have 'log(log(*))' keys, found {key}")
-        return True
-    return False
-
-
-def _check_duplicate_keys(keys):
-    """Avoid key duplication during initialization."""
-    log_keys = [key for key in keys if _is_log(key)]
-    for log_key in log_keys:
-        # log(<astring>) --> <astring>
-        exp_key = re.match(r"^log\((.*)\)$", log_key)[1]
-        if exp_key in keys:
-            pass
-
-
-def _sanitize_mapping(mapping):
-    """Replace log keys/values with 'exp' versions in the internal dict."""
-    log_keys = [key for key in mapping.keys() if _is_log(key)]
-    for log_key in log_keys:
-        exp_value = np.exp(mapping.pop(log_key))
-        exp_key = log_key[4:-1]
-        mapping[exp_key] = exp_value
-    return mapping
-
-
 class BasePrior(object):
     """
     Basic class for priors
@@ -62,15 +31,6 @@ class BasePrior(object):
         self.extend = extend
         self.dict = dict(_sanitize_mapping(mapping))
         self._verify_keys()
-
-    def _verify_keys(self):
-        """Check for spurious log keys, e.g, from 'log(log(key))'."""
-        if self.extend:
-            for key in self.dict.keys():
-                if _is_log(key):
-                    msg = "Invalid key encountered {0}.".format(key)
-                    msg += " Perhaps from log({0})?".format(key)
-                    raise ValueError(msg)
 
     def __getitem__(self, key):
         """Get value corresponding to key, allowing for 'log' terms."""

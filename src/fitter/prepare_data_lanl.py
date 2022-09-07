@@ -18,15 +18,43 @@ import lsqfit
 
 import fitter.corr_functions as cf
 
-from IPython import embed
-
 from utilities.h5io import get_dsets 
 from utilities.parsing import parse_t_info, parse_file_info 
-
 from utilities.concat_ import concatenate,concat_dsets
 
+def prepare_xyp(states, u_xp, gv_data):
+    '''
+    scrape input file 
+    '''
+
+    x = copy.deepcopy(u_xp.x)
+    # prepare data y
+    # y = {k: v[x[k]['t_range']]
+    #      for (k, v) in gv_data.items() if k.split('_')[0] in states}
+    
+    n_states = dict()
+    for state in states:
+        for k in x:
+            if state in k and 'mres' not in k:
+                n_states[state] = x[k]['n_state']
+
+    priors = dict()
+    for k in u_xp.priors:
+        for state in states:
+            if 'mres' not in k:
+                k_n = int(k.split('_')[-1].split(')')[0])
+                if state == k.split('(')[-1].split('_')[0] and k_n < n_states[state]:
+                    priors[k] = gv.gvar(u_xp.priors[k].mean, u_xp.priors[k].sdev)
+            else:
+                mres = k.split('_')[0]
+                if mres in states:
+                    priors[k] = gv.gvar(u_xp.priors[k].mean, u_xp.priors[k].sdev)
+
+    return x,priors 
+
 ''' 
-Convert raw correlator data into agreeable format for fitter. 
+Convert raw correlator data into agreeable format for fitter.
+Apply statistical treatments to refactored raw data (jackknife,bootstrap) 
 
 Args: 
 
@@ -36,10 +64,13 @@ Returns:
         corr_gv : dictionary of correlated data
 '''
 
-def coalesce_data(corr_raw, skip_prelim=False,fold=False,nt=None):
+
+def coalesce_data(corr_raw,bl=9, skip_prelim=False,fold=False,nt=None):
 
     corr_binned = raw_to_binned(
-        corr_raw
+        corr_raw,
+        bl=bl,
+        fold=fold
     )
 
     corr_gv = Coalesced_Dataset(
@@ -50,204 +81,104 @@ def coalesce_data(corr_raw, skip_prelim=False,fold=False,nt=None):
 
     return corr_gv
 
+class Coalesced_Dataset(object):
+    def __init__(self,data_dict,datatags=None,skip_prelim=False):
+        self.datatags= datatags
+        fit_data_3pt = {datatag: val for datatag,val in data_dict.items() if isinstance(datatag, int)}
+        self.c_3pt = cf.C_3pt(datatag=None, fit_data_3pt=fit_data_3pt)
+
+        self.c_2pt = {}
+        for datatag in self.datatags:
+            self.c_2pt[datatag] = cf.C_2pt(datatag, data_dict[datatag],nt = self.c_3pt.times.nt) 
+
+    def check_timeslice(self):
+        slices = [self.c_2pt.src.times.nt,self.c_2pt.snk.times.nt,self.c_3pt.times.nt]
+        for tslice in slices:
+            if not np.all(tslice == slices[0]):
+                raise ValueError('check that your timeslices are equivalent for corrs')
+
+def raw_to_binned(data, bl=9):
+    ''' data shape is [Ncfg, others]
+        bl = block length in configs
+    '''
+    if bl <= 1:
+        return data
+
+    # (1000, 32) --> (200, 5, 32)
+    Ncfg = data.shape[0]
+    data = np.reshape(data, (Ncfg//bl, bl))
+    return np.average(data, axis=1) 
+    # --> (200, 32)
+
+
+    # ncfg, nt_gf = data.shape
+    # if ncfg % bl == 0:
+    #     nb = ncfg // bl
+    # else:
+    #     nb = ncfg // bl + 1
+    # corr_bl = np.zeros([nb, nt_gf], dtype=data.dtype)
+    # for b in range(nb-1):
+    #     corr_bl[b] = data[b*bl:(b+1)*bl].mean(axis=0)
+    # corr_bl[nb-1] = data[(nb-1)*bl:].mean(axis=0)
+
+    # return corr_bl
+
+def bs_to_gvar(data,corr, bs_N):
+    ''' provide corr for dict key '''
+    bs_M = data[corr].shape[0]
+    print(bs_M)
+    bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
+    
+    temp_dict = {}
+    for key in data.keys():
+        temp = data[key][bs_list[0, :],:]
+        temp_dict[key] = np.mean(temp, axis=0)
+        
+    for k in range(1, bs_N):
+        for key in data.keys():
+            temp = data[key][bs_list[k, :],:]
+            temp_dict[key] = np.vstack((temp_dict[key], np.mean(temp, axis=0)))
+    
+    output = {}
+    for key in data.keys():
+        mean = np.mean(data[key], axis=0)
+        unc = np.cov(temp_dict[key], rowvar=False)
+        output[key] = gv.gvar(mean, unc)
+    return output
+
 def correlate(data):
     mean = gv.mean(gv.dataset.avg_data(data))
     covariance = compute_covariance(data)
     return gv.gvar(mean, cov)
 
-# def compute_covariance(data):
-
-
-# def raw_to_binned(data):
-#     tmp_data = {}
-
-#     for key, val in data.items():
-        
-#             # three-pt dsets should be indexed by int tsep values 
-#             if (not isinstance(key, int)):
-#                 tmp_data[key] = fold(val)
-#     return tmp_data
-
-def block_data(data, bl):
-    ''' data shape is [Ncfg, others]
-        bl = block length in configs
-    '''
-    ncfg, nt_gf = data.shape
-    if ncfg % bl == 0:
-        nb = ncfg // bl
-    else:
-        nb = ncfg // bl + 1
-    corr_bl = np.zeros([nb, nt_gf], dtype=data.dtype)
-    for b in range(nb-1):
-        corr_bl[b] = data[b*bl:(b+1)*bl].mean(axis=0)
-    corr_bl[nb-1] = data[(nb-1)*bl:].mean(axis=0)
-
-    return corr_bl
 
 
 
-def normalize_ff(curr,mom,m_snk):
-    normalize = np.float(1)
-    return normalize
 
-class Coalesced_Dataset(object):
-    def __init__(self,data_dict,datatags=None,skip_prelim=False):
+# def normalize_ff(curr,mom,m_snk):
+#     #TODO 
+#     normalize = np.float(1)
+#     return normalize
 
-        ydata_3pt = {datatag: val for datatag,val in data_dict.items() if isinstance(datatag, int)}
-        self.c_3pt = cf.C_3pt(tag, ydata_3pt=ydata_3pt)
+# def normalize_R(ff,E_p,M):
+#     ''' TODO ratio -> scalar form factor '''
+#     if ff == '51':
 
-        self.c2 = {}
-        for datatag in self.datatags:
-            self.c2[datatag] = cf.C_2pt(datatag, ydata) 
-
-def main():
-    parser = argparse.ArgumentParser(
-        description='Perform analysis of two-point correlation function')
-    parser.add_argument('fit_params',    help='input file to specify fit')
-    parser.add_argument('--fit',         default=True, action='store_true',
-                        help=            'do fit? [%(default)s]')
-    parser.add_argument('--prior_override',default=True, action='store_true',
-                        help=            'override generated priors with priors from input file? [%(default)s]')
-    parser.add_argument('-b', '--block', default=1, type=int,
-                        help=            'specify bin/blocking size in terms of saved configs')
-    parser.add_argument('--uncorr_corrs', default=False, action='store_true',
-                        help=            'uncorrelate different correlation functions? [%(default)s]')
-    parser.add_argument('--uncorr_all',  default=False, action='store_true',
-                        help=            'uncorrelate all snk,src for each correlation function? [%(default)s]')
-    parser.add_argument('--states',      nargs='+',
-                        help=            'specify states to fit?')    
-    parser.add_argument('--svdcut',      type=float, help='add svdcut to fit')
-    parser.add_argument('--svd_test',    default=True, action='store_false',
-                        help=            'perform gvar svd_diagnosis? [%(default)s]')
-    parser.add_argument('--svd_nbs',     type=int, default=50, help='number of BS samples for estimating SVD cut [%(default)s]')                    
-
-    args = parser.parse_args()
-    # if args.save_figs and not os.path.exists('figures'):
-    #     os.makedirs('figures')
-    # print(args)
-    # add path to the input file and load it
-    sys.path.append(os.path.dirname(os.path.abspath(args.fit_params)))
-    fp = importlib.import_module(
-        args.fit_params.split('/')[-1].split('.py')[0])
-
-    directory = fp.data_directory
-    N_cnf = len([name for name in os.listdir(directory) if os.path.isfile(name)])
-
-    dirs = os.listdir( directory )
-    cnf_abbr = [files.split(".ama.h5")[0] for files in dirs]
-    cnf_abbr = [cnf.replace('-','.') for cnf in cnf_abbr]
-    cfg_abbr_sorted = np.sort(cnf_abbr)
-    embed()
+#     elif ff == '52':
     
-    # data_file_list = os.path.realpath(dirs)
-    data_file_list = list()
-    for dirpath,_,filenames in os.walk(directory):
-        for f in filenames:
-            data_file_list.append(os.path.abspath(os.path.join(dirpath, f)))
-    sorted_files = np.sort(data_file_list)
-    # embed()
-    file = data_file_list[0]
+#     elif ff== '53':
 
-    # cfg_pattern = "(E7-0_[0-9]+).ama.h5"
-    # regex = re.compile(cfg_pattern)
-    # df = pd.DataFrame([regex.match(f).groupdict() for f in data_file_list if regex.match(f)])
-    # embed()
+#     elif ff== '54':
+
+#     return np.sqrt(2*E_p(E_p)+M)
+
+''' Statistics routines '''
 
 
 
-    string = '3pt_tsep21/NUCL_D_MIXED_NONREL_l0_g0/src10.0_snk10.0/qz+0_qy+0_qx+0/E7.a_1716/AMA'
-    patterns = [
-    "3pt",
-    "_tsep(?P<tsep>[0-9]|[0-9]+)",  # must match `_tsep` and stores the following numbers (any length)
-    "/NUCL_(?P<quark>U|D)",  # Store U or D in quark
-    "_MIXED_NONREL",  # Not sure if this changes. Not stored for now
-    "_l(?P<l>[0-9]+)",  # action parameters?
-    "_g(?P<g>[0-15]+)",
-    "/src(?P<src>[0-9\.]+)",  # Stores numbers + . to store decimals. Must escape .
-    "_snk(?P<snk>[0-9\.]+)",  # Stores numbers + . to store decimals. Must escape .
-    "/qz(?P<qz>[\+\-0-9]+)", 
-    "_qy(?P<qy>[\+\-0-9]+)", 
-    "_qx(?P<qx>[\+\-0-9]+)",
-    
-    
-]
-    pattern_2pt = [
-        "2pt/",
-        "pion/",
-        "src10.0_snk10.0/",
-        "pion",]
-
-
-    
-    # for n in range(len(pattern_2pt)):
-    #     pattern = "".join(pattern_2pt[:n+1])
-    #     for i in range(len(data_file_list)):
-    #         match = re.match(pattern_2pt, data_file_list[i])
-    #         if not match:
-    #             print(pattern_2pt)
-    #             break
-
-    # if match:
-    #     concat_pattern = match.groupdict()
-    # print(concat_pattern)
-    # print(parse_t_info('3pt_tsep21/NUCL_D_MIXED_NONREL_l0_g0/src10.0_snk10.0/qz+0_qy+0_qx+0/E7.a_1716/AMA'))
-
-    # concatenation_pattern = dict()
-    # concatenation_pattern['2pt/pion/src10.0_snk10.0/pion/'] = 'pion'
-    # concatenation_pattern['2pt/proton/src10.0_snk10.0/proton'] = 'proton'
-    # concatenate(directory, concat_pattern)
-    out_file = os.path.join(os.getcwd(),"conctat_out.h5")
-    # print(out_file)
-    # concat_dsets(data_file_list[0:3], out_file, overwrite=True)
-
-#     string = (
-#     "3pt_tsep12/NUCL_D_MIXED_NONREL_l0_g0/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_5682/AMA"
-# )
-
-### Save data into txt files for unew analysis
-    # newdir = os.path.join('unew_files',labels[ensemble]+'_pbp')
-    # os.makedirs(newdir,exist_ok=True)
-    # filename = os.path.join(newdir,'runs_')
-    # for i,s in enumerate(streams[ensemble]):
-    #     dset_mdt[s].to_csv(filename+str(i)+'.dat',sep=' ',header=False,index=False,columns=['pbp_l','pbp_s','pbp_c'],mode='w')
-
-    for f_i in range(0,3):
-        with h5py.File(sorted_files[f_i], 'r') as h5f:
-            dsets = get_dsets(h5f,load_dsets=True)
-            dsets.to_csv()
-            # embed()
-            # print(dsets.keys())
-            
-            # concat_dsets(data_file_list, out_file,overwrite=True)
-
-
-        # embed()
-    # pion = {}
-    for cfg in cfg_abbr_sorted[0:2]:
-        
-        pion   = dsets['2pt/pion/src10.0_snk10.0/pion/'+cfg+'/AMA']
-        # proton = dsets['2pt/proton/src10.0_snk10.0/proton/E7.a_1716/AMA']
-    print(pion)
-        # embed()
-    def get_real(data):
-        pion_real = []
-        for i in range(len(data)):
-            pion_real.append(data[i][0])
-        return pion_real
-
-    raw = {}
-    raw['pion'] = get_real(pion)
-    print(raw['pion'])
-    print(gv.dataset.avg_data(raw['pion']))
-    mean = gv.mean(gv.dataset.avg_data(raw['pion']))
-    # cov = correct_covariance(data, **kwargs)
-    print(gv.gvar(mean))
-        # data = gv.gvar(pion_real)
-    # print(np.mean(pion_real),np.std(pion_real))
-
-    def bs_corr(corr,Nbs,Mbs,seed=None):
+def bs_corr(corr,Nbs,Mbs,seed=None):
         corr_bs = np.zeros(tuple([Nbs]) + corr.shape[1:],dtype=corr.dtype)
-        np.random.seed(seed) # if None - it does not seed - I checked 14 May 2013
+        np.random.seed(seed)
         # make bs_lst of shape (Nbs,Mbs)
         bs_lst = np.random.randint(0,corr.shape[0],(Nbs,Mbs))
         # use bs_lst to make corr_bs entries
@@ -255,58 +186,110 @@ def main():
             corr_bs[bs] = corr[bs_lst[bs]].mean(axis=0)
         return corr_bs
 
-    # bs_corr(pion_real, Nbs=20, Mbs=20,seed='a071m170')
-
+def jackknife(data):
+    ''' bin first, then jn '''
+    N = data.shape[0]
+    _jackknife_avg = (data.sum() - data)/(N-1)
     
-    # to_gvar(data)
+    jackknife_avg = np.mean(_jackknife_avg)
+    jackknife_err = np.sqrt((N - 1)*(np.mean(_jackknife_avg**2) - jackknife_avg**2))
+    return jackknife_avg, jackknife_err
 
-    def effective_mass(data):
-        """
-        Computes the effective mass analytically using the following formula
-        
-        meff = ArcCosh( (C(t+1)+ C(t-1)) / C(t) )
-        This method correctly accounts for contributions both from forward- and
-        backward-propagating states. 
-        """
-        cosh_m = (data[2:] + data[:-2]) / (2.0 * data[1:-1])
-        meff = np.zeros(len(cosh_m), dtype=gv._gvarcore.GVar)
-        # The domain of arccosh is [1, Infinity).
-        # Set entries outside of the domain to nans.
-        domain = (cosh_m > 1)
-        meff[domain] = np.arccosh(cosh_m[domain])
-        meff[~domain] = gv.gvar(np.nan)
-        return meff
+''' preliminary dset handling '''
 
-    effective_mass(data)
-            # corrs_gv = {}
-            # corrs_gv = gv.dataset.avg_data(pion_real)
-            # print(corrs_gv)
+def unpack_tuple(data):
+    if type(data[0]) is tuple:
+        for i in range(len(data[0])):
+            obj_array = []
+            for k in range(len(data)):
+                obj_array.append(data[k][i])
+        return obj_array
+
+''' properties of unpacked tuple '''
+
+@unpack_tuple
+def std_mean(data, axis=0):
+    return np.mean(data, axis)
+
+
+@unpack_tuple
+def std_median(data, axis=0):
+    return np.median(data, axis)
+
+
+@unpack_tuple
+def std_err(data, axis=0):
+    data = np.asarray(data)
+    return std_dev(data, axis) / np.sqrt(data.shape[axis])
+
+@unpack_tuple
+def std_var(data, axis=0):
+    data = np.asarray(data)
+    return np.var(data, axis=axis, ddof=1)
+
+
+@unpack_tuple
+def std_dev(data, axis=0):
+    data = np.asarray(data)
+    return np.std(data, axis=axis, ddof=1)
+
+
+def mean_and_err(data, axis=0):
+    mean = std_mean(data, axis=axis)
+    error = std_err(data, axis=axis)
+    return mean, error
+
+
+def mean_and_cov(data, axis=0):
+    mean = std_mean(data, axis=axis)
+    cov = calc_cov(data)
+    return mean, cov
+
+
+def mean_and_std_dev(data, axis=0):
+    mean = std_mean(data, axis=axis)
+    std = std_dev(data, axis=axis)
+    return mean, std
+
+
+
+
+
+
+''' misc. parsing routines to be implemented when database IO is built out '''
+
+def parse_corr_block(file):
+    """
+    Parses a correlator data block into lists of t, Re(C), Im(C).
+    Args:
+        ifile: if .txt file, routine will work. TODO add to class of parsing routines
+        based on type of input file (.h5,.txt,.dat, etc.). Namely, interface with 
+        database IO.
+    Returns:
+        t, real, imag: three lists with the data
+    """
+    # Use regex to be picky about what constitutes data and to fail
+    # early and noisily if something unexpected appears
+    corr_block = r"(-?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?)"
+    datum = re.compile(r"^(\d+)" + f" {corr_block} {corr_block}$")
+    t, real, imag = [], [], []
+    data_block = True
+    while data_block:
+        line = next(file)
+        match = re.match(datum, line)
+        if match:
+            tokens = match.groups() # t, real, imag
+            t.append(tokens[0])
+            real.append(tokens[1])
+            imag.append(tokens[2])
+        else:
+            LOGGER.error("ERROR: Unrecognized line in data block %s", line)
+            raise ValueError(f"Unrecognized line in data block, {line}")
+    return t, real, imag
             
 
         
        
-        # threept = dsets['3pt_tsep21/NUCL_D_MIXED_NONREL_l0_g0/src10.0_snk10.0/qz+0_qy+0_qx+0/E7.a_1716/AMA']
-        # corrs = gv.BufferDict()
-        # corrs['pion'] = dsets['2pt/pion/src10.0_snk10.0/pion/E7.a_1716/AMA']
-        # corrs['proton'] = dsets['2pt/proton/src10.0_snk10.0/proton/E7.a_1716/AMA']
-        # corrs_gv = {}
-        # for k in corrs:
-        #     corrs_gv[k] = gv.dataset.avg_data(corrs[k])
-        # #     else:
-        #         for corr in corr_dict:
-        #             corrs_corr = {k: v for k, v in corrs.items() if corr in k}
-        #             tmp_gv = gv.dataset.avg_data(corrs_corr)
-        #             for k in tmp_gv:
-        #                 corrs_gv[k] = tmp_gv[k]
-        # else:
-        #     corrs_gv = gv.dataset.avg_data(corrs)
-
-
-        # print(dsets)
-        # for key, dset in dsets.items():
-        #     match = re.search(pattern, string)
-        #     if match:
-        #         info = match.groupdict()
-
+       
 if __name__== '__main__':
     main()

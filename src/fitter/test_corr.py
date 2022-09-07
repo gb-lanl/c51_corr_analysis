@@ -56,95 +56,11 @@ def main():
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
 
-    # h5fname = '/home/gbradley/c51_corr_analysis/tests/data/C13/C13-b_4002.ama.h5'
     
-    # data = {}
-    # corrs_gv = {}
-    # with h5py.File(h5fname, 'r') as h5f:
-    #     dsets = get_dsets(h5f)
-    #     # print(dsets)
-    #     for key in dsets.keys():
-        
-    #         # print(key)
-    #         data[key] = h5f[key][:]
-    #     ordered_datatags = sorted(data.keys(),key=str)
-    #     # print(ordered_datatags)
-    #     sizes = [data[tag].shape[0] for tag in ordered_datatags]
-    # #     # print(sizes)
-    # #         # corrs_gv[key] = gv.dataset.avg_data(data[key])
-    # #         # print(corrs_gv.keys())
-    # # # print(data['2pt/ext_current/src5.0_snk5.0/ext_axial_A1_A1/C13.b_4002/AMA'])
-    # datatag = '2pt/proton/src5.0_snk5.0/proton/C13.b_4002/AMA'
-    # datatag_SP = '2pt/proton_SP/src5.0_snk5.0/proton/C13.b_4002/AMA' 
-    # corr_ss = data[datatag]
-    # corr_ps = data[datatag_SP]
-    
-    # for j in range(len(corr_ss)):
-    #     #source @ t=0, tins @ t=t, tsnk @ t=Tau
-    #     # for k in range(j+1):
-    #     Esrc_re[i] = np.array(corr_ss[j][0]) #real part of 3pt corr fcn
-    #     Esrc_im[i] = (corr_ss[j][1]) #imag part of 3pt corr fcn 
-    #     print(Esrc_re)
-    # for i in range(len(corr_ps)):
-    #     #source @ t=0, tins @ t=t, tsnk @ t=Tau
-    #     # for k in range(j+1):
-    #     Esnk_re[i] = np.array(corr_ps[i][0]) #real part of 3pt corr fcn
-    #     Esnk_im[i] = (corr_ps[i][1]) #imag part of 3pt corr fcn 
-        
-    # ydata = {}
-    # ydata['ss'] = Esrc_re
-    # ydata['ps'] = Esnk_re
-    # print(ydata)
-   
-    # # # nt = corr_ss.shape
-    # # # print(nt)
-    # # # corr_ss = corr_ss[..., np.newaxis]
-    # # _, nt = corr_ss.shape
-    # # print(nt)
-    # # t = np.arange(nt)
-    # # # cr = corr_ss[:, :nt // 2 +1]
-    # # # print(cr)
-    # # corr_ss_ = corr_ss.real
-    # # c = corr_ss.imag
-    # fit_out = test_NPoint(tag,Esrc_re,prior=priors)
-    # # fit_ = test_NPoint_snk(datatag_SP,data,prior=priors)
-    # # print(fit_)
-    # print(fit_out)
-    
-    # print(gv.dataset.avg_data(out))
-    # # cov = correct_covariance(data, **kwargs)
-    # # dset = corrfitter.read_dataset(h5fname,h5group=datatag)
-    # # print(dset.size())
-    # def time_reverse(corr, reverse=True, phase=1, time_axis=1):
-    #     ''' assumes time index is second of array
-    #         assumes phase = +- 1
-    #     '''
-    #     if reverse:
-    #         if len(corr.shape) > 1:
-    #             cr = phase * np.roll(corr[:, ::-1], 1, axis=time_axis)
-    #             cr[:, 0] = phase * cr[:, 0]
-    #         else:
-    #             cr = phase * np.roll(corr[::-1], 1)
-    #             cr[0] = phase * cr[0]
-    #     else:
-    #         cr = phase * corr
-    #     return cr
-    # def fold(data):
-    #     data = 0.5*(data + time_reverse(data))
-    #     return data
-
-    # # # fold(corr_ss)
-    # # for key, value in dset.items():
-    # #     print(key,value)
     # # # mass = prelim.FastFit(data[datatag])
 
    
     
-    # # `2pt/pion/src5.0_snk5.0/pion/C13.b_4002/AMA`
-    # # `2pt/pion_SP/src5.0_snk5.0/pion/C13.b_4002/AMA`
-    # # `3pt_tsep10/NUCL_D_MIXED_NONREL_l0_g0/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_4002/AMA`
-
-
     # def parse_baryon_tag(datatag):
     #     datatag_split = datatag.split('/')
     #     corr_type     = datatag_split[0]
@@ -233,16 +149,6 @@ def main():
     
     if x_fit.keys() != y_fit.keys():
         raise ValueError("keys: fit_states should be shared in both fit dicts")
-
-    axial_num_gv = {}
-    vector_num_gv = {}
-    corr_gv = {}
-    axial_num_gv['SS'] = gv_data['gA_SS']
-    axial_num_gv['PS'] = gv_data['gA_PS']
-    vector_num_gv['SS'] = gv_data['gV_SS']
-    vector_num_gv['PS'] = gv_data['gV_PS']
-    corr_gv['SS'] = gv_data['proton_SS']
-    corr_gv['PS'] = gv_data['proton_PS']
 
     # preliminary plots 
     plot.get_naive_effective_g00(axial_num_gv, corr_gv)
@@ -568,35 +474,6 @@ def main():
 
     print(get_fit_keys(c2))
 
-   
-
-# def update_time():
-#     # test_BaseTimes()
-#    c
-def test_main():
-    """Test the main function."""
-    corr.main()
-
-def test_BaseTimes():
-    """Test TimeContainer.BaseTimes class."""
-    tdata = range(100)
-    tmin = 1
-    tmax = 50
-    nt = 200
-    tp = -1
-
-    times = cf.TimeContainer(tdata)
-    print(times)
-    assert times.tmin == 5, "Expected default tmin=5"
-    assert times.tmax == len(tdata) - 1, "Expected default tmax=len(tdata)-1"
-    assert times.nt == len(tdata), "Expected default nt=len(tdata)"
-    assert times.tp == times.nt, "Expected default tp=nt"
-
-    with pytest.raises(ValueError):
-        times = cf.TimeContainer(tdata, tmin=-1)
-
-    with pytest.raises(ValueError):
-        times = cf.TimeContainer(tdata, tmax=len(tdata)+1)
 
 def test_NPoint(tag,data,prior): #prior
     """Test cf.C_2pt and cf.C_3pt class."""
