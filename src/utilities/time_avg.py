@@ -9,18 +9,18 @@ import re
 
 import h5py
 
-from utilities.master_utils import set_up_logger
-from utilities.master_utils import find_all_files
-from utilities.master_utils import has_match
+from nucleon_elastic_ff.utilities import set_up_logger
+from nucleon_elastic_ff.utilities import find_all_files
+from nucleon_elastic_ff.utilities import has_match
 
-from utilities.h5io import get_dsets
-from utilities.h5io import create_dset
+from nucleon_elastic_ff.data.h5io import get_dsets
+from nucleon_elastic_ff.data.h5io import create_dset
 
-from utilities.utils import group_files
-from utilities.utils import parse_dset_address
-from utilities.utils import assert_patterns_present
+from nucleon_elastic_ff.data.scripts.utilities import group_files
+from nucleon_elastic_ff.data.scripts.utilities import parse_dset_address
+from nucleon_elastic_ff.data.scripts.utilities import assert_patterns_present
 
-LOGGER = set_up_logger("lanl_lqcd_analysis")
+LOGGER = set_up_logger("nucleon_elastic_ff")
 
 
 def dset_avg(  # pylint: disable=R0914, R0913
@@ -151,8 +151,8 @@ def dset_avg(  # pylint: disable=R0914, R0913
                 )
 
     LOGGER.info("Writing `%d` dsets to `%s`", len(dsets_paths), out_file)
-    h5f = h5py.File(out_file,'r+')
-    for key, paths in dsets_paths.items():
+    with h5py.File(out_file) as h5f:
+        for key, paths in dsets_paths.items():
             LOGGER.debug(
                 "Writing dset `%s` (average of %d dsets) with meta info:\n\t`%s`",
                 key,
@@ -166,11 +166,10 @@ def dset_avg(  # pylint: disable=R0914, R0913
 
             acc = 0
             for file, path in paths:
-                h5fin = h5py.File(file, "r")
-                acc += h5fin[path][()]
+                with h5py.File(file, "r") as h5fin:
+                    acc += h5fin[path][()]
 
-            h5f.create_dataset(key, data=(acc / n_dsets[key]),axis=axis)
-            h5f.close()
+            create_dset(h5f, key, acc / n_dsets[key], overwrite=overwrite)
             h5f[key].attrs["meta"] = dset_meta[key]
 
 

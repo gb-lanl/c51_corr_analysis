@@ -1,4 +1,6 @@
 """Utility routines for nucleon_elastic_ff.data module
+Adapted from @ckoerber
+Modifications by @gb-lanl
 """
 from typing import List
 from typing import Optional

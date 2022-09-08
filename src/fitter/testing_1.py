@@ -11,16 +11,16 @@ import numpy as np
 import lsqfit
 import re
 import pandas as pd
-import matplotlib.pyplot as plt
 
+sys.path.insert(0, '/home/gbradley/c51_corr_analysis')
 import fitter.corr_functions as cf 
 import fitter.load_data as ld
 import fitter.plotting as plot
 import fitter.fastfit as prelim #LePage's preliminary corrfitter to generate p0
-import fitter.priors as priors 
-sys.path.insert(0, '/home/gbradley/nucleon_elastic_FF')
-# from h5io import get_dsets 
-# from IPython import embed
+import fitter.test_priors as priors 
+
+from src.utilities.h5io import get_dsets 
+from IPython import embed
 
 SVDCUT = 0.002
 Nstates = collections.namedtuple('NStates', ['n', 'no', 'm', 'mo'], defaults=(2, 1, 2, 1))
@@ -56,11 +56,95 @@ def main():
     fp = importlib.import_module(
         args.fit_params.split('/')[-1].split('.py')[0])
 
+    # h5fname = '/home/gbradley/c51_corr_analysis/tests/data/C13/C13-b_4002.ama.h5'
     
+    # data = {}
+    # corrs_gv = {}
+    # with h5py.File(h5fname, 'r') as h5f:
+    #     dsets = get_dsets(h5f)
+    #     # print(dsets)
+    #     for key in dsets.keys():
+        
+    #         # print(key)
+    #         data[key] = h5f[key][:]
+    #     ordered_datatags = sorted(data.keys(),key=str)
+    #     # print(ordered_datatags)
+    #     sizes = [data[tag].shape[0] for tag in ordered_datatags]
+    # #     # print(sizes)
+    # #         # corrs_gv[key] = gv.dataset.avg_data(data[key])
+    # #         # print(corrs_gv.keys())
+    # # # print(data['2pt/ext_current/src5.0_snk5.0/ext_axial_A1_A1/C13.b_4002/AMA'])
+    # datatag = '2pt/proton/src5.0_snk5.0/proton/C13.b_4002/AMA'
+    # datatag_SP = '2pt/proton_SP/src5.0_snk5.0/proton/C13.b_4002/AMA' 
+    # corr_ss = data[datatag]
+    # corr_ps = data[datatag_SP]
+    
+    # for j in range(len(corr_ss)):
+    #     #source @ t=0, tins @ t=t, tsnk @ t=Tau
+    #     # for k in range(j+1):
+    #     Esrc_re[i] = np.array(corr_ss[j][0]) #real part of 3pt corr fcn
+    #     Esrc_im[i] = (corr_ss[j][1]) #imag part of 3pt corr fcn 
+    #     print(Esrc_re)
+    # for i in range(len(corr_ps)):
+    #     #source @ t=0, tins @ t=t, tsnk @ t=Tau
+    #     # for k in range(j+1):
+    #     Esnk_re[i] = np.array(corr_ps[i][0]) #real part of 3pt corr fcn
+    #     Esnk_im[i] = (corr_ps[i][1]) #imag part of 3pt corr fcn 
+        
+    # ydata = {}
+    # ydata['ss'] = Esrc_re
+    # ydata['ps'] = Esnk_re
+    # print(ydata)
+   
+    # # # nt = corr_ss.shape
+    # # # print(nt)
+    # # # corr_ss = corr_ss[..., np.newaxis]
+    # # _, nt = corr_ss.shape
+    # # print(nt)
+    # # t = np.arange(nt)
+    # # # cr = corr_ss[:, :nt // 2 +1]
+    # # # print(cr)
+    # # corr_ss_ = corr_ss.real
+    # # c = corr_ss.imag
+    # fit_out = test_NPoint(tag,Esrc_re,prior=priors)
+    # # fit_ = test_NPoint_snk(datatag_SP,data,prior=priors)
+    # # print(fit_)
+    # print(fit_out)
+    
+    # print(gv.dataset.avg_data(out))
+    # # cov = correct_covariance(data, **kwargs)
+    # # dset = corrfitter.read_dataset(h5fname,h5group=datatag)
+    # # print(dset.size())
+    # def time_reverse(corr, reverse=True, phase=1, time_axis=1):
+    #     ''' assumes time index is second of array
+    #         assumes phase = +- 1
+    #     '''
+    #     if reverse:
+    #         if len(corr.shape) > 1:
+    #             cr = phase * np.roll(corr[:, ::-1], 1, axis=time_axis)
+    #             cr[:, 0] = phase * cr[:, 0]
+    #         else:
+    #             cr = phase * np.roll(corr[::-1], 1)
+    #             cr[0] = phase * cr[0]
+    #     else:
+    #         cr = phase * corr
+    #     return cr
+    # def fold(data):
+    #     data = 0.5*(data + time_reverse(data))
+    #     return data
+
+    # # # fold(corr_ss)
+    # # for key, value in dset.items():
+    # #     print(key,value)
     # # # mass = prelim.FastFit(data[datatag])
 
    
     
+    # # `2pt/pion/src5.0_snk5.0/pion/C13.b_4002/AMA`
+    # # `2pt/pion_SP/src5.0_snk5.0/pion/C13.b_4002/AMA`
+    # # `3pt_tsep10/NUCL_D_MIXED_NONREL_l0_g0/src5.0_snk5.0/qz+0_qy+0_qx+0/C13.b_4002/AMA`
+
+
     # def parse_baryon_tag(datatag):
     #     datatag_split = datatag.split('/')
     #     corr_type     = datatag_split[0]
@@ -121,7 +205,7 @@ def main():
     else:
         states = fp.fit_states
 
-    
+
 
     
     """The number of configurations present.
@@ -131,7 +215,7 @@ def main():
 
     nconfigs = [val.shape[0] for val in data_cfg.values()]
     nconfigs = np.unique(nconfigs).item()
-    print(nconfigs)
+    # print(nconfigs)
 
     ds = {key: gv.dataset.avg_data(data_cfg) for key, val in data_cfg.items()}
     # print(ds)
@@ -150,14 +234,22 @@ def main():
     if x_fit.keys() != y_fit.keys():
         raise ValueError("keys: fit_states should be shared in both fit dicts")
 
+    axial_num_gv = {}
+    vector_num_gv = {}
+    corr_gv = {}
+    axial_num_gv['SS'] = gv_data['gA_SS']
+    axial_num_gv['PS'] = gv_data['gA_PS']
+    vector_num_gv['SS'] = gv_data['gV_SS']
+    vector_num_gv['PS'] = gv_data['gV_PS']
+    corr_gv['SS'] = gv_data['proton_SS']
+    corr_gv['PS'] = gv_data['proton_PS']
+
     # preliminary plots 
     plot.get_naive_effective_g00(axial_num_gv, corr_gv)
-    
 
-    plot.plot_naive_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
-    plot.plot_naive_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
-    plot.plot_effective_mass(corr_gv)
-    # plot.plot_correlators(gv_data)
+    # plot.plot_effective_g00(axial_num_gv, corr_gv, 1, 14,observable='gA')
+    # plot.plot_effective_g00(vector_num_gv, corr_gv, 1, 14,observable='gV')
+    # plot.plot_effective_mass(corr_gv)
     # plot.plot_correlator_summary(corr_gv)
     mass = prelim.FastFit(gv_data['proton_PS'])
     
@@ -206,7 +298,7 @@ def main():
     # print(corr_gv)
     Tags = ['proton_SS','proton_PS']
     
-    nt = np.unique([len(arr) for arr in y_fit.values()]).item()
+    # nt = np.unique([len(arr) for arr in y_fit.values()]).item()
 
     # fit = fitter.run_fit()
     # print(priors.MesonPrior())
@@ -216,13 +308,13 @@ def main():
     """ filling our "dataset" """
     tag = 'SS'
     tag_ = 'PS'
-    fit_out = test_NPoint(tag,corr_gv,prior=priors)
-    fit_ = test_NPoint_snk(tag_,corr_gv,prior=priors)
+    fit_out = test_NPoint(tag,corr_gv)
+    fit_ = test_NPoint_snk(tag_,corr_gv)
     # print(fit_)
     # print(fit_out)
-    t_ins = np.array(range(7)) 
+    t_ins = np.array(range(3)) 
     T = np.array(range(8)) + 8
-    # T_ = T.ravel().tolist()
+    T_ = T.ravel().tolist()
     
     
     
@@ -249,17 +341,64 @@ def main():
     
     c2_snk = c2['PS']
     c2_src = c2['SS']
-    print(c2_snk)
+    print(c2_snk,c2_src)
     # print(c2_src.fastfit.E,"mass")
+    h5fname = '/home/gbradley/c51_corr_analysis/tests/data/a09m135_s_avg_srcs0-15.h5'
+    pattern = "(?P<parity>proton|proton\_np)"
+    pattern += "_(?P<isospin>DD|UU)"
+    pattern += "_(?P<spin>dn_dn|up_up)"
+    pattern += "_tsep_[\-]*(?P<tsep>[0-9]+)"
+    pattern += ".*(?P<current>A3|V4).*cfgs\_srcs"
+    columns = ["nucleon", "current", "tsep", "cfg", "t", "isospin", "parity", "spin", "corr"]
+    data_frames = []
+
+    # with h5py.File(h5fname, "r") as h5f:
+    #     dsets = get_dsets(h5f)
+    #     # print(dsets)
+
+    #     for key, dset in dsets.items():
+    #         match = re.search(pattern, key)
+    #         if match:
+    #             info = match.groupdict()
+
+    #             nucleon_parity = info.pop("parity").split("_")
+    #             info["nucleon"] = nucleon_parity[0]
+    #             info["parity"] = -1 if len(nucleon_parity) == 2 else 1
+                
+    #             isospin = info.pop("isospin")
+    #             info["isospin"] = 1 if isospin == "UU" else -1            
+
+    #             current_key = key.replace("cfgs_srcs", "local_curr")
+    #             curr_dset = h5f[current_key]
+
+    #             cfgs = dset[:, 0]
+    #             corr = (
+    #                 curr_dset[()].real if info["current"] in ["V4"] else curr_dset[()].imag
+    #             )
+    #             ts = range(corr.shape[-1])
+
+    #             tmp_df = (
+    #                 pd.DataFrame(index=cfgs, columns=ts, data=corr)
+    #                 .unstack()
+    #                 .reset_index()
+    #                 .rename(columns={"level_0": "t", "level_1": "cfg", 0: "corr"})
+    #             )
+    #             for key, val in info.items():
+    #                 tmp_df[key] = val
+    #             data_frames.append(tmp_df.astype({"tsep": int}))
+
+
+
+   
+    
 
         
     # import fitter.corr_functions as cf 
     # c3 = cf.C_3pt(tag='proton',ydata_3pt=ydict)
     # print(c3)
 
-    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T,c2,c2_src,c2_snk)
-    print(c3)
-    print(get_model(c2_snk,c2_src, c3, 'SS', nstates = Nstates(n=1, no=0,m=0,mo=0)),"MODEL")
+    c3 = test_NPoint_3pt('PS',axial_num_gv,t_ins,T_,c2,c2_snk,c2_src)
+    print(c3,"c3")
    
     # get_model(c2, c3, 'SS', nstates)
     # print(len(c3),"HELLO")
@@ -314,14 +453,7 @@ def main():
     #                             t_snk - self.c2[self.tags.snk].times.tmin)
     # return tfit
 
-    
-    def c3_smeared(m_src,m_snk):
-        return c3.avg(m_src, m_snk)
-    print(c3_smeared)
-
-    
-
-    def compute_ratio(c2_src,c2_snk,c3_avg,T,t_ins,avg=True,tau_override=False):
+    def compute_ratio(c2_src,c2_snk,c3,c3_avg,T,avg=True,tau_override=False):
         """ compute the ratio of C_3pt(t,T) / C_2pt(t) 
         From eq.19 in https://arxiv.org/abs/2103.05599:
         "All matrix elements are obtained from fits to the 3pt correlators with the 
@@ -331,7 +463,6 @@ def main():
         m_snk = c2_snk.mass
         c2_src = c2_src.avg()
         c2_snk = c2_snk.avg()
-        c3 = c3_avg
 
         # if avg:
         #     # Switch to averaged versions of all the quantites
@@ -341,14 +472,13 @@ def main():
         #     c2_snk = c2_snk.avg()
         # Compute the ratio
         r = {}
-        t = np.arange(len(t_ins))
         
-        T = T.ravel().tolist()
+        # T = T.ravel().tolist()
         for t_snk in T:
-            # t = np.arange(t_snk)
+            t = np.arange(t_snk)
             
             denom = np.sqrt(
-                c2_src[t] * c2_snk[t_snk - t] * 
+                c2_src[t] * c2_snk[t_snk - t] *
                 np.exp(-m_src * t) * np.exp(-m_snk * (t_snk - t))
             )
             tmax = t_snk
@@ -356,76 +486,12 @@ def main():
             r[t_snk] = c3[t_snk][:tmax] * np.sqrt(2 * m_src) / denom[:tmax]
         return r
 
-    
-    rat = compute_ratio(c2_src, c2_snk,c3.avg(m_src, m_snk),T,t_ins)
+    @property
+    def c3_smeared(m_src,m_snk):
+        return c3.avg(m_src, m_snk)
+    print(c3_smeared)
+    rat = compute_ratio(c2_src, c2_snk,c3, c3.avg(m_src, m_snk),T)
     print(rat.items(),"testing")
-    print(rat.keys(),"keys")
-    print(max(rat.keys()),"max")
-    print(sorted(rat),"sort")
-    
-    # embed()
-
-    
-
-    def get_ff_plateau(rat):
-        plateau = float('-inf')
-        # sign = []
-        # sign = sign_(rat)
-        for t_snk, rbar in rat.items():
-            local_max = max(gv.mean(rbar[1:t_snk - 1]))
-            plateau = max(plateau, local_max)
-        return plateau
-
-    
-    def guess(rat):
-        return get_ff_plateau(rat)
-
-    guess = guess(rat)
-    print(guess)
-
-    def v_guess(guess,m_src):
-        """Compute a guess for the target matrix element Vnn[0,0]."""
-        return guess / np.sqrt(2.0 * m_src)
-
-    print(v_guess(guess, m_src))
-
-    # def plot_ratio(rat,ax=None,tmin=0,tmax=None,plot_moose=True):
-    #     if ax is None:
-
-    #     colors = np.array(['red', 'blue', 'yellow'])
-    #     if tmax is None:
-    #         tmax = max(rat.keys())
-    #     for color, T in zip(colors,sorted(rat)):
-    #         t_range = range(0,T)
-    #         t_range = t_range[max(tmin,min(t_range)):min(tmax,max(t_range))]
-        
-
-    #         if plot_moose:
-    #             # Unsmeared "saw-tooth" ratio
-    #             label = "R, T={0}".format(T)
-    #             y = rat[T][t_range]
-    #             plt.errorbar(
-    #                 ax, t_range, y,
-    #                 label=label, color=color, fmt='-.'
-    #             )
-    #         if T in rat:
-    #             # Smeared ratio
-    #             label = "Rbar, T={0}".format(T)
-    #             y = rat[T][t_range]
-    #             plt.errorbar(
-    #                 ax, t_range, y,
-    #                 label=label, color=color
-    #             )
-
-    #     ax.set_xlabel('t/a')
-    #     ax.set_ylabel('$\\bar{R}$ (lattice units)')
-    #     #ax.legend(loc=0)
-    #     return ax
-
-
-
-    # ratio_gv = {key : (np.roll(guess[key], -1) - guess[key])/1 for key in guess.keys()}
-    # embed()
 
 
     def ensure_real(data):
@@ -466,7 +532,20 @@ def main():
                 f"Sign mismatch across t_snks, found {signs}. "
                  "Please specify by hand at initalization.")
 
+    def get_ff_plateau(rat):
+        plateau = float('-inf')
+        sign = []
+        sign = sign_(rat)
+        for t_snk, rbar in rat.items():
+            local_max = max(sign * gv.mean(rbar[1:t_snk - 1]))
+            plateau = max(plateau, local_max)
+        return sign * plateau
+
     
+    def guess(rat):
+        return get_ff_plateau(rat)
+
+    # guess(rat)
 
     def get_fit_keys(c2):
         """Get the keys of the two- and three-point correlators."""
@@ -474,8 +553,37 @@ def main():
 
     print(get_fit_keys(c2))
 
+   
 
-def test_NPoint(tag,data,prior): #prior
+# def update_time():
+#     # test_BaseTimes()
+#    c
+def test_main():
+    """Test the main function."""
+    corr.main()
+
+def test_BaseTimes():
+    """Test TimeContainer.BaseTimes class."""
+    tdata = range(100)
+    tmin = 1
+    tmax = 50
+    nt = 200
+    tp = -1
+
+    times = cf.TimeContainer(tdata)
+    print(times)
+    assert times.tmin == 5, "Expected default tmin=5"
+    assert times.tmax == len(tdata) - 1, "Expected default tmax=len(tdata)-1"
+    assert times.nt == len(tdata), "Expected default nt=len(tdata)"
+    assert times.tp == times.nt, "Expected default tp=nt"
+
+    with pytest.raises(ValueError):
+        times = cf.TimeContainer(tdata, tmin=-1)
+
+    with pytest.raises(ValueError):
+        times = cf.TimeContainer(tdata, tmax=len(tdata)+1)
+
+def test_NPoint(tag,data): #prior
     """Test cf.C_2pt and cf.C_3pt class."""
     # print(data[tag].shape)
     nt = data[tag].shape
@@ -501,7 +609,7 @@ def test_NPoint(tag,data,prior): #prior
    
     return c2_src
 
-def test_NPoint_snk(tag,data,prior):
+def test_NPoint_snk(tag,data):
     # tag = 'PS'
     nt = data[tag].shape
     data_ = data.pop(tag)
@@ -630,17 +738,13 @@ def get_three_point_model(t_snk, tfit, tdata, nstates, tags=None, constrain=Fals
 
     return model
 
-def get_model(c2_snk,c2_src,c3, tag, nstates, constrain=False):
+def get_model(c2,c3, tag, nstates, constrain=False):
     """Gets a corrfitter model"""
     # TODO implement constrain 
-    # print(c2[tag])
-    if isinstance(c2_snk, cf.C_2pt):
-        osc = bool(nstates.no) if tag == 'PS' else bool(nstates.mo)
-        return get_two_point_model(c2_snk, osc)
-    if isinstance(c2_src, cf.C_2pt):
+    print(c2[tag])
+    if isinstance(c2[tag], cf.C_2pt):
         osc = bool(nstates.no) if tag == 'SS' else bool(nstates.mo)
-        return get_two_point_model(c2_src, osc)
-    
+        return get_two_point_model(c2[tag], osc)
     if isinstance(tag, int):
         t_snk = tag
         tdata = c3.times.tdata
@@ -757,7 +861,7 @@ class C_3pt_Analysis(object):
         First runs two-point functions, Then runs the simult fit.
         """
         if prior is None:
-            self.prior = priors.JointFitPrior(nstates,self.c2) #construct jointfit prior 
+            self.prior = priors.JointFitPrior(nstates,self.c2)
         else:
             self.prior = prior
         if tmin_override is not None:
@@ -837,11 +941,10 @@ class C_3pt_Analysis(object):
 
         # Handle models
         models_list = []
-        for tag in self.tags:
+        for tag in self.c2:
             model = get_model(self.c2,self.ds, tag, nstates,constrain)
             if model is not None:
                 models_list.append(model)
-        print(models_list,"hi")
 
         # Abort if too few models found; There should be a model corresponding to each key in dataset
         if len(models_list) != len(set(self.c2.keys())):

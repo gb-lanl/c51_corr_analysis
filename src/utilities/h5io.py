@@ -1,4 +1,6 @@
 """Module provides h5 file interafaces.
+Adapted from @ckoerber
+Modifications by @gb-lanl
 """
 from typing import Dict
 from typing import Optional
@@ -15,8 +17,7 @@ import h5py
 from utilities.master_utils import set_up_logger
 from utilities.master_utils import has_match
 
-#LOGGER = set_up_logger("nucleon_elastic_ff")
-LOGGER = set_up_logger("lqcd correlator analysis")
+LOGGER = set_up_logger("lanl lqcd analysis")
 
 def get_dsets(
     container: Union[h5py.File, h5py.Group],

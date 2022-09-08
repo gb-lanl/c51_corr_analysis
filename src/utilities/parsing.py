@@ -1,4 +1,6 @@
 """Routines for parsing information from data files and hdf addresses
+Adapted from @ckoerber
+Modifications by @gb-lanl
 """
 from typing import Union
 

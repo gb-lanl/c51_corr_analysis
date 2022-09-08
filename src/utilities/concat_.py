@@ -1,4 +1,6 @@
-"""Script for concatenating correlator data
+"""Script for concatenating correlator data.
+Adapted from @ckoerber
+Modifications by @gb-lanl
 """
 from typing import List
 from typing import Dict
@@ -10,21 +12,21 @@ import re
 import h5py
 import numpy as np
 
-from master_utils import set_up_logger
-from master_utils import find_all_files
-from master_utils import has_match
+from utilities.utilities.master_utils import set_up_logger
+from utilities.utilities.master_utils import find_all_files
+from utilities.utilities.master_utils import has_match
 
-from h5io import get_dsets
-from h5io import create_dset
+from utilities.utilities.h5io import get_dsets
+from utilities.utilities.h5io import create_dset
 
-from utils import parse_dset_address
-from utils import assert_patterns_present
+from utilities.utilities.utils import parse_dset_address
+from utilities.utilities.utils import assert_patterns_present
 
 
 LOGGER = set_up_logger("lanl lqcd analysis")
 
 
-def concat_dsets(  # pylint: disable=R0913, R0914
+def concat_dsets(
     files: List[str],
     out_file: str,
     axis: int = 0,
@@ -168,6 +170,7 @@ def concat_dsets(  # pylint: disable=R0913, R0914
                 h5f.close()
 
                 with h5py.File(out_file,'r+') as h5f:
+                    # create_dset(h5f, key, data=np.concatenate(dset_list, axis=axis),overwrite=True)
                     h5f.create_dataset(key,data=np.concatenate(dset_list, axis=axis))
                 h5f.close()
             else:

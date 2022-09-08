@@ -15,6 +15,37 @@ def inflate(params, frac):
     return params
 
 
+def _is_log(key):
+    """Check if the key has the form 'log(*)'."""
+    pattern = re.compile(r"^log\((.*)\)$")
+    match = re.match(pattern, key)
+    if match:
+        if re.match(pattern, match[1]):
+            raise ValueError(f"Cannot have 'log(log(*))' keys, found {key}")
+        return True
+    return False
+
+
+def _check_duplicate_keys(keys):
+    """Avoid key duplication during initialization."""
+    log_keys = [key for key in keys if _is_log(key)]
+    for log_key in log_keys:
+        # log(<astring>) --> <astring>
+        exp_key = re.match(r"^log\((.*)\)$", log_key)[1]
+        if exp_key in keys:
+            pass
+
+
+def _sanitize_mapping(mapping):
+    """Replace log keys/values with 'exp' versions in the internal dict."""
+    log_keys = [key for key in mapping.keys() if _is_log(key)]
+    for log_key in log_keys:
+        exp_value = np.exp(mapping.pop(log_key))
+        exp_key = log_key[4:-1]
+        mapping[exp_key] = exp_value
+    return mapping
+
+
 class BasePrior(object):
     """
     Basic class for priors
@@ -31,6 +62,15 @@ class BasePrior(object):
         self.extend = extend
         self.dict = dict(_sanitize_mapping(mapping))
         self._verify_keys()
+
+    def _verify_keys(self):
+        """Check for spurious log keys, e.g, from 'log(log(key))'."""
+        if self.extend:
+            for key in self.dict.keys():
+                if _is_log(key):
+                    msg = "Invalid key encountered {0}.".format(key)
+                    msg += " Perhaps from log({0})?".format(key)
+                    raise ValueError(msg)
 
     def __getitem__(self, key):
         """Get value corresponding to key, allowing for 'log' terms."""
@@ -204,7 +244,6 @@ class MesonPrior(BasePrior):
     """
 
     def __init__(self, n=1, no=0, amps=None, tag=None, ffit=None, **kwargs):
-        print(n,no)
         if n < 1:
             raise ValueError("Must have n_decay >=1.")
         if no < 0:
@@ -289,60 +328,54 @@ class MesonPriorPDG(BasePrior):
         super(MesonPriorPDG, self).__init__(mapping=prior, **kwargs)
 
 
-class JointFitPrior(BasePrior):
+class FormFactorPrior(BasePrior):
     """
     Prior for joint fits to extract form factors.
     """
 
-    def __init__(self, nstates, c2=None, positive_ff=True, **kwargs):
-        tags = c2.keys()
-        if c2 is None:
-            c2 = {}
-        
+    def __init__(self, nstates, ds=None, positive_ff=True, **kwargs):
+        if ds is None:
+            ds = {}
         else:
-            JointFitPrior._verify_tags(tags)
+            FormFactorPrior._verify_tags(ds.tags)
         self.positive_ff = positive_ff
-        super(JointFitPrior, self).__init__(
-                mapping=self._build(nstates, c2),
+        super(FormFactorPrior, self).__init__(
+                mapping=self._build(nstates, ds),
                 **kwargs)
 
     @staticmethod
     def _verify_tags(tags):
         """Verify that the tags (from nstates) are supported."""
         tags = set(tags)
-        print(tags)
         valid_tags = [
-            ['SS'],
-            ['PS'],
+            ['gA_SS'],
+            ['gA_PS'],
+            ['gV_SS'],
+            ['gV_PS']
 
         ]
-        for k in valid_tags:
-            
-            
-            if tags == set(k):
+        for possibility in valid_tags:
+            if tags == set(possibility):
                 return
-        # raise ValueError("Unrecognized tags in JointFitPrior")
+        raise ValueError("Unrecognized tags in FormFactorPrior")
 
-    def _build(self, nstates, c2):
+    def _build(self, nstates, ds):
         """Build the prior dict."""
-        prior = JointFitPrior._make_meson_prior(nstates, c2)
-        tmp = self._make_vmatrix_prior(nstates, c2)
+        prior = FormFactorPrior._make_meson_prior(nstates, ds)
+        tmp = self._make_vmatrix_prior(nstates, ds)
         for key in tmp:
             prior[key] = tmp[key]
         return prior
 
     @staticmethod
-    def _make_meson_prior(nstates, c2):
+    def _make_meson_prior(nstates, ds):
         """Build prior associated with the meson two-point functions."""
-        tags = c2.keys()
-        c2_src = c2['SS']
-        c2_snk = c2['PS']
-
+        tags = ds.tags
         meson_priors = [
             MesonPrior(nstates.n, nstates.no,
-                       tag='SS', ffit=c2_src.fastfit),
+                       tag=tags.src, ffit=ds.c2_src.fastfit),
             MesonPrior(nstates.m, nstates.mo,
-                       tag='PS', ffit=c2_snk.fastfit),
+                       tag=tags.snk, ffit=ds.c2_snk.fastfit),
         ]
         prior = {}
         for meson_prior in meson_priors:
@@ -350,17 +383,16 @@ class JointFitPrior(BasePrior):
                 prior[key] = value
         return prior
 
-    def _make_vmatrix_prior(self, nstates, c2):
+    def _make_vmatrix_prior(self, nstates, ds):
         """Build prior for the 'mixing matrices' Vnn, Vno, Von, and Voo."""
         def _abs(val):
             return val * np.sign(val)
-        c2_snk = c2['PS'] #THIS OBJ SHOULD JUST BE MEMBER OF C2
         mass = None
         n = nstates.n
         no = nstates.no
         m = nstates.m
         mo = nstates.mo
-        mass = c2_snk.fastfit.E
+        mass = ds[ds.tags.src].fastfit.E
 
         # General guesses
         tmp_prior = {}

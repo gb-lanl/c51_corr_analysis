@@ -1,7 +1,7 @@
 '''
 Modules for:
-2pt function
-3pt function
+2pt corr function
+3pt corr function
 eff mass function  
 variants of exponential fit function
 '''
@@ -13,7 +13,9 @@ import lsqfit
 import importlib
 import gvar as gv
 import corrfitter as cf
-import fastfit as fastfit #Lepage's prelim fitter -> p0 to speed up initial fits
+import matplotlib.pyplot as plt
+import matplotlib
+import fitter.fastfit as fastfit #Lepage's prelim fitter -> p0 to speed up initial fits
 # import figures as plt
 
 def main():
@@ -30,6 +32,17 @@ def _infer_tmax(ydata, noise_threshy):
         tmax = np.argmin(good)
     return tmax
 
+def effective_mass(data):
+    
+    cosh_m = (data[2:] + data[:-2]) / (2.0 * data[1:-1])
+    meff = np.zeros(len(cosh_m), dtype=gv._gvarcore.GVar)
+    # The domain of arccosh is [1, Infinity).
+    # Set entries outside of the domain to nans.
+    domain = (cosh_m > 1)
+    meff[domain] = np.arccosh(cosh_m[domain])
+    meff[~domain] = gv.gvar(np.nan)
+    return meff
+
 def effective_mass_local(data, ti=0, dt=1):
     """
     Computes a "local" effective mass.
@@ -45,30 +58,24 @@ def effective_mass_local(data, ti=0, dt=1):
     >>> meff_even = effective_mass_local(c2, ti=0, dt=2)  # Even timeslices only
     >>> meff_odd = effective_mass_local(c2, ti=1, dt=2)  # Odd timeslices only
     """
+
     c_t = data[ti::dt][:-1]
     c_tpdt = data[ti::dt][1:]
     return np.array((1/dt)*np.log(c_t/c_tpdt))
 
-def effective_mass(data):
-    """
-    Computes the effective mass analytically using the following formula
-    
-    meff = ArcCosh( (C(t+1)+ C(t-1)) / C(t) )
-    This method correctly accounts for contributions both from forward- and
-    backward-propagating states. 
-    """
-    cosh_m = (data[2:] + data[:-2]) / (2.0 * data[1:-1])
-    meff = np.zeros(len(cosh_m), dtype=gv._gvarcore.GVar)
-    # The domain of arccosh is [1, Infinity).
-    # Set entries outside of the domain to nans.
-    domain = (cosh_m > 1)
-    meff[domain] = np.arccosh(cosh_m[domain])
-    meff[~domain] = gv.gvar(np.nan)
-    return meff
+def En(x, p, n):
+        """
+        g.s. energy is energy
+        e.s. energies are given as dE_n = E_n - E_{n-1}
+        """
+        E = p['%s_E_0' % x['state']]
+        for i in range(1, n+1):
+            E += p['%s_dE_%d' % (x['state'], i)]
+        return E
 
 
 class TimeContainer(object):
-    def __init__(self, tdata, tmin=5, tmax=None, nt=None, tp=None):
+    def __init__(self, tdata, tmin=0, tmax=None, nt=None, tp=None):
         self.tdata = np.asarray(tdata)
         if tmin < 0:
             raise ValueError('you are stuck in the past... ')
@@ -112,16 +119,27 @@ class TimeContainer(object):
 class C_2pt(object):
     '''
     simple two-point correlation function
+    x-data from input file should take the form:
+
+    x['proton_SS'] = {'state':'proton'
+              'corr':exp, 'n_state':3,
+              't_range':np.arange(10,21,1), 'T':T
+              'snk':'S', 'src':'S'
+              'factorized_fit (z_snk_n z_src_n) or not (A_n)'
+              }
     '''
-    def __init__(self, tag, ydata, noise_threshy=None, skip_fastfit=False, **time_kwargs):
+
+    def __init__(self, tag, ydata,p, noise_threshy=None, skip_fastfit=False, **time_kwargs):
         self.tag = tag
         self.ydata = ydata
+        # self.x = x
+        self.p = p
         self.noise_threshy = noise_threshy
         tdata = time_kwargs.pop('tdata', None)
         if tdata is None:
             tdata = np.arange(len(ydata))
         self.times = TimeContainer(tdata=tdata, **time_kwargs)
-        self.times.tmax = 96 #_infer_tmax(ydata, noise_threshy)
+        self.times.tmax = 20 #_infer_tmax(ydata, noise_threshy)
         # Estimate the ground-state energy and amplitude
         if skip_fastfit:
             self.fastfit = None
@@ -130,10 +148,10 @@ class C_2pt(object):
                 data=self.ydata[:self.times.tmax],
                 tp=self.times.tp,
                 tmin=self.times.tmin)
-        self._mass = None
+        self._mass = self.p['proton_E_0']
     
     def set_mass(self, mass):
-        self._mass = mass
+        self._mass = self.p['proton_E_0']
 
     @property
     def mass(self):
@@ -148,14 +166,15 @@ class C_2pt(object):
         )
         raise AttributeError(msg)
 
-    def meff(self, avg=False):
+
+    def meff(self, avg=True):
         """Compute the effective mass of the correlator."""
         if avg:
             return effective_mass(self.avg())
         else:
             return effective_mass(self.ydata)
 
-    def avg(self, mass=-1.0):
+    def avg(self, mass=1.0):
         """
         Compute the time-slice-averaged two-point correlation function.
         """
@@ -203,7 +222,8 @@ class C_2pt(object):
         return ax
     
 class C_3pt(object):
-    """ThreePoint correlation function. Keys in ydata should be integer values,
+    """
+    ThreePoint correlation function. Keys in ydata should be integer values,
     representing the Tau value/tsep. 
     Can handle:
     - tuple (tsrc,tsep)
@@ -221,21 +241,21 @@ class C_3pt(object):
         e^{-E_{m} t^{\\rm ins}}
         \\big[ A^{\\rm src}_{im} \\big]^{T}
     """
-    def __init__(self, tag, ydata_3pt,t_ins,T, noise_threshy=0.03, nt=None):
+    def __init__(self, tag, ydata_3pt,t_ins,T, nt=None):
         #TODO prompt user override with t_ins and T from input file if keys not integers 
         self.tag = tag
         self.ydata_3pt = ydata_3pt
         self.t_ins = t_ins
         self.T = T
         # self._verify_ydict(nt)
-        self.noise_threshy = noise_threshy
+        
         tmp = self.ydata_3pt 
         if nt is None:
             tdata = np.arange(len(tmp))
         else:
             tdata = np.arange(nt)
         self.times = TimeContainer(tdata=tdata, nt=nt)
-        self.times.tmax =  _infer_tmax(tmp, noise_threshy)
+        self.times.tmax =  25 #_infer_tmax(tmp, noise_threshy)
 
     def __str__(self):
         return "ThreePoint[tag='{}', tmin={}, tmax={}, nt={}, T={}]".\
@@ -301,22 +321,10 @@ class C_3pt(object):
         # if self._confirm_real(self.t_ins):
         #     if self._confirm_real(self.T):
         for ts in T:
-            # for ti in t:
-            # for i in range(0,12):
-                # print(ts,ti)
                 c3 = self.ydata_3pt[ts] 
                 print(c3) # C(t, T)
-                # t = np.arange(len(self.t_ins))
-                
-                # t = np.arange(len(c3))
                 ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(ts-t))
                 tmp = _combine(ratio)
-                # if T_cut %2 !=0:
-                #     c3 = self.ydata_3pt[ts+ti]
-                #     ratio = c3 / np.exp(-m_src*t) / np.exp(-m_snk*(ts+ti -t))
-                #     tmp = 0.5 * (tmp+_combine(ratio))
-
-                
                 c3bar[ts] = tmp * np.exp(-m_src*t) * np.exp(-m_snk*(ts-t))
 
         return c3bar
@@ -408,25 +416,6 @@ class CorrFunction:
                 r += A * np.exp(-E_n*t)
         return r
 
-    def exp_3pt(self, x, p):
-        #print('DEBUG:',x)
-        #sys.exit()
-        r = {}
-        r['pt3_gA'] = p['gA_00']*(self.exp(x,p)) 
-        r['pt3_gV'] = p['gV_00']*(self.exp(x,p)) 
-        # t = x['t_range']
-        for j in range(x['n_state']):
-            for i in range(x['n_state']):
-                if j ==i:
-                    r['pt3_gA'] += p['gA_'+str(j)+str(i)]*(self.exp(x,p))
-                    r['pt3_gV'] += p['gV_'+str(j)+str(i)]*(self.exp(x,p))
-                else:
-                    mi = np.minimum(j, i)
-                    ma = np.maximum(j, i)
-                    r['pt3_gA'] += p['gA_'+str(mi)+str(ma)]*(self.exp(x,p))*(self.exp(x,p))
-                    r['pt3_gV'] += p['gV_'+str(mi)+str(ma)]*(self.exp(x,p))*(self.exp(x,p))
-        # print(r['pt3_gA'])
-        return r 
 
     def exp_open(self, x, p):
         ''' first add exp tower '''
@@ -687,154 +676,8 @@ class FitCorr(object):
         return r
 
     
-class Simult_Fit(object):
-    def __init__(self,states,nstates,x, prior, t_range, 
-                 corr_gv=None, axial_num_gv=None, vector_num_gv=None):
-        self.corr_functions = CorrFunction()
-        self.fit_corr = FitCorr()
-        self.states = states
-        self.x = x
-        self.y = y
-        # self.x_fit = x_fit
-        # self.y_fit = y_fit
-        self.nstates = nstates
-        self.t_range = t_range
-        self.prior = prior
-        self.corr_gv = corr_gv
-        self.axial_num_gv = axial_num_gv
-        self.vector_num_gv = vector_num_gv
-        self.fit = None
-        self.prior = prior
-
-    def get_fit(self):
-        if self.fit is not None:
-            return self.fit
-        else:
-            return self.make_fit()
-
-    def make_fit(self):
-        ''' 
-        create a model (which is a subclass of MultiFitter)
-        make a fitter using the models
-        make the fit with our two sets of correlators
-        '''
-
-        models = self.models_simult()
-
-        fitter = lsqfit.MultiFitter(models=models)
-        data = self._make_data()
-        # p0,x_fit,y_fit = self.fit_corr.get_fit(priors=self.prior, states=self.states, x=self.x, y=self.y)
-        fit = fitter.lsqfit(data=data, prior=self.prior)
-        self.fit = fit
-        return fit
-
-    def _make_data(self):
-        data = {}
-        if self.corr_gv is not None:
-            for sink in self.corr_gv.keys():
-                data["nucleon_"+sink] = self.corr_gv[sink][self.t_range['corr'][0]:self.t_range['corr'][1]]
-
-        if self.axial_num_gv is not None:
-            for sink in self.axial_num_gv.keys():
-                data["axial_num_"+sink] = self.axial_num_gv[sink][self.t_range['gA'][0]:self.t_range['gA'][1]]
-
-        if self.vector_num_gv is not None:
-            for sink in self.vector_num_gv.keys():
-                data["vector_num_"+sink] = self.vector_num_gv[sink][self.t_range['gV'][0]:self.t_range['gV'][1]]
-
-        return data
-
-    def models_simult(self):
-        models = np.array([])
-        if self.corr_gv is not None:
-            for snk in self.corr_gv.keys():
-                for n in range(1,10):
-                    fit_params = {
-                        'E0'     : 'proton_E_0',
-                        'log(dE)' : 'log(proton_dE_%d)'%n,
-                        'z'       : 'proton_z'+snk[:1]+'_0',
-
-                    }
-                    models = np.append(models,
-                            Two_pt(datatag="nucleon_"+snk,
-                            x=(self.t_range['corr'][0], self.t_range['corr'][1]),
-                            fit_params=fit_params, nstates=self.nstates))
-        if self.axial_num_gv is not None:
-            for snk in self.axial_num_gv.keys():
-                for n in range(1,10):
-                    fit_params = {
-                        'E0'     : 'proton_E_0',
-                        'log(dE)' : 'log(proton_dE_%d)'%n,
-                        'd'        : 'dA_'+snk,
-                        'g_nm'  : 'gA_00',
-                        'z'       : 'proton_z'+snk[:1]+'_0',
-                    }
-                    models = np.append(models,
-                            Three_pt(datatag="axial_num_"+snk,
-                            x=(self.t_range['gA'][0], self.t_range['gA'][1]),
-                        fit_params=fit_params, nstates=self.nstates))
-        if self.vector_num_gv is not None:
-            for snk in self.vector_num_gv.keys():
-                for n in range(1,10):
-                    fit_params = {
-                        'E0'     : 'proton_E_0',
-                        'log(dE)' : 'log(proton_dE_%d)'%n,
-                        'd'        : 'dV_'+snk,
-                        'g_nm'  : 'gV_nm',
-                        'z'       : 'proton_z'+snk[:1]+'_0',
-
-                    }
-                    models = np.append(models,
-                            Three_pt(datatag="vector_num_"+snk,
-                            x=(self.t_range['gV'][0], self.t_range['gV'][1]),
-                            fit_params=fit_params, nstates=self.nstates))
-        return models
-
-class Two_pt(lsqfit.MultiFitterModel):
-    def __init__(self,datatag,x,fit_params,nstates):
-        super(Two_pt,self).__init__(datatag)
-        self.x = np.array(x)
-        self.nstates = nstates
-        self.fit_params = fit_params
-        self.corr_functions = CorrFunction()
-
-    def fitfcn(self,p,t=None):
-        output = self.corr_functions.exp(x=self.x, p=p)
-        return output
-    def buildprior(self, prior, mopt=None, extend=False):
-        ''' 
-        Extract the model's parameters from prior.
-        '''
-        return prior
-
-    def builddata(self, data):
-        ''' 
-        Extract the model's fit data from data.
-        '''
-        return data[self.datatag]
 
 
-class Three_pt(lsqfit.MultiFitterModel):
-    def __init__(self,datatag,x,fit_params,nstates):
-        super(Three_pt,self).__init__(datatag)
-        self.x = np.array(x)
-        self.fit_params = fit_params
-        self.nstates = nstates
-        
 
-    def fitfcn(self,p,t=None):
-        output = self.corr_functions.exp_3pt(x=self.x, p=p)
-        return output
 
-    def buildprior(self, prior, mopt=None, extend=False):
-        ''' 
-        Extract the model's parameters from prior.
-        '''
-        return prior
-
-    def builddata(self, data):
-        ''' 
-        Extract the model's fit data from data.
-        '''
-        return data[self.datatag]
 

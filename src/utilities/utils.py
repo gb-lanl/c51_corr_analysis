@@ -1,4 +1,6 @@
 """More specialised utility scripts which help grouping similar files.
+Adapted from @ckoerber
+Modifications by @gb-lanl
 """
 from typing import List
 from typing import Union
